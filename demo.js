@@ -111,6 +111,7 @@ const optionsChain = {
 
 let activeExpiration = Object.keys(optionsChain)[0];
 
+const MAX_OPTIONS_IN_CHART = 3;
 
 function formatExpirationDate(dateStr) {
   const date = new Date(dateStr);
@@ -145,8 +146,13 @@ function updateOptionsGrid(expirationDate) {
     // Reset selected options
     selectedOptions.calls = [];
     selectedOptions.puts = [];
+
+    // Clear all row highlights 
+    document.querySelectorAll("#grid .highcharts-datagrid-tbody tr").forEach(row => {
+    row.classList.remove('row-highlight');
+        });
     
-    // IMPORTANT: Also clear the selected options table - add this line
+    // IMPORTANT: Also clear the selected options table 
     const optionsContainer = document.getElementById("selected-options-container");
     if (optionsContainer) {
       optionsContainer.innerHTML = "<p>No options selected</p>";
@@ -470,60 +476,75 @@ const board = Dashboards.board("container", {
           resetButton.className = "chart-control-btn";
           
           // Reset button functionality
-          resetButton.addEventListener("click", () => {
-            // Get the chart component
-            const component = board.getComponentByCellId("chart");
-            
-            // Reset selected options
-            selectedOptions.calls = [];
-            selectedOptions.puts = [];
-            
-            // Clear the selected options table
-            const optionsContainer = document.getElementById("selected-options-container");
-            if (optionsContainer) {
-              optionsContainer.innerHTML = "<p>No options selected</p>";
-            }
-            
-            // Reset strategy info text
-            const strategyInfoText = document.getElementById("strategyInfoText");
-            if (strategyInfoText) {
-              strategyInfoText.textContent = "Select options to view strategy analysis";
-            }
-            
-            // Remove all series
-            while (component.chart.series.length > 0) {
-              component.chart.series[0].remove(false);
-            }
-            
-            // Reset plot lines
-            component.chart.xAxis[0].update({
-              plotLines: [{
-                value: 0,
-                className: 'highcharts-break-even-line',
-                width: 1,
-                label: {
-                  text: 'Break-even',
-                  align: 'right'
-                }
-              }]
-            }, false);
-            
-            // Reset chart title and axes
-            component.chart.setTitle({ text: "Options Data" });
-            component.chart.xAxis[0].setTitle({ text: "Strike Price" });
-            component.chart.yAxis[0].setTitle({ text: "Value" });
-            
-            // Reset button opacities
-            document.querySelectorAll(".option-btn").forEach(btn => {
-              btn.style.opacity = "1";
-            });
-            
-            // Ensure the checkbox is unchecked
-            document.getElementById('showCombinedOnly').checked = false;
-            
-            // Redraw the chart
-            component.chart.redraw();
-          });
+        // Find the resetButton event listener in your chart component's mount event and update it:
+// Find this in the chart component's mount event handler and replace the resetButton click event with this:
+resetButton.addEventListener("click", () => {
+  // Get the chart component
+  const component = board.getComponentByCellId("chart");
+  
+  // Reset selected options
+  selectedOptions.calls = [];
+  selectedOptions.puts = [];
+  
+  // Clear the selected options table
+  const optionsContainer = document.getElementById("selected-options-container");
+  if (optionsContainer) {
+    optionsContainer.innerHTML = "<p>No options selected</p>";
+  }
+  
+  // Reset strategy info text
+  const strategyInfoText = document.getElementById("strategyInfoText");
+  if (strategyInfoText) {
+    strategyInfoText.textContent = "Select options to view strategy analysis";
+  }
+  
+  // Remove all series
+  while (component.chart.series.length > 0) {
+    component.chart.series[0].remove(false);
+  }
+  
+  // Reset plot lines
+  component.chart.xAxis[0].update({
+    plotLines: [{
+      value: 0,
+      className: 'highcharts-break-even-line',
+      width: 1,
+      label: {
+        text: 'Break-even',
+        align: 'right'
+      }
+    }]
+  }, false);
+  
+  // Reset chart title and axes
+  component.chart.setTitle({ text: "Options Data" });
+  component.chart.xAxis[0].setTitle({ text: "Strike Price" });
+  component.chart.yAxis[0].setTitle({ text: "Value" });
+  
+  // Reset button opacities
+  document.querySelectorAll(".option-btn").forEach(btn => {
+    btn.style.opacity = "1";
+  });
+  
+  // The critical part: Clear all row highlights - use same approach as updateOptionsGrid
+  document.querySelectorAll("#grid .highcharts-datagrid-tbody tr").forEach(row => {
+    row.classList.remove('row-highlight');
+  });
+  
+  // For thoroughness, also try force-clearing any inline styles
+  document.querySelectorAll("#grid tr").forEach(row => {
+    row.style.backgroundColor = '';
+    Array.from(row.children).forEach(cell => {
+      cell.style.backgroundColor = '';
+    });
+  });
+  
+  // Ensure the checkbox is unchecked
+  document.getElementById('showCombinedOnly').checked = false;
+  
+  // Redraw the chart
+  component.chart.redraw();
+});
           
           // Add controls to container
           controlsContainer.appendChild(visibilityToggle);
@@ -654,11 +675,17 @@ const board = Dashboards.board("container", {
               const longPutBtn = cellElement.querySelector(".put-long");
               const shortPutBtn = cellElement.querySelector(".put-short");
               
+              const rowElement = cellElement.closest('tr');
+
               // Toggle active state for call buttons
               function toggleCallActive(isLong) {
                 // Visual indication of active button
                 longCallBtn.style.opacity = isLong ? "1" : "0.6";
                 shortCallBtn.style.opacity = !isLong ? "1" : "0.6";
+
+                if (rowElement) {
+                  rowElement.classList.add('row-highlight');
+                }
                 
                 // Check if call exists already in selectedOptions
                 const existingCallIndex = selectedOptions.calls.findIndex(call => 
@@ -689,6 +716,10 @@ const board = Dashboards.board("container", {
                 longPutBtn.style.opacity = isLong ? "1" : "0.6";
                 shortPutBtn.style.opacity = !isLong ? "1" : "0.6";
                 
+                if (rowElement) {
+                  rowElement.classList.add('row-highlight');
+                }
+
                 // Check if put exists already in selectedOptions
                 const existingPutIndex = selectedOptions.puts.findIndex(put => 
                   put.strike === strikeValue && put.expiration === activeExpiration);
@@ -746,6 +777,17 @@ const board = Dashboards.board("container", {
                     s.name.includes(seriesName)
                   );
                   existingSeries.forEach(series => series.remove());
+                }
+                
+                // Check if any option remains for this row/expiration
+                const isAnyCallSelected = selectedOptions.calls.some(c => 
+                  c.strike === strikeValue && c.expiration === activeExpiration);
+                const isAnyPutSelected = selectedOptions.puts.some(p => 
+                  p.strike === strikeValue && p.expiration === activeExpiration);
+                
+                // Remove highlight ONLY if no options are left for this strike/expiry
+                if (rowElement && !isAnyCallSelected && !isAnyPutSelected) {
+                  rowElement.classList.remove('row-highlight');
                 }
                 
                 // Update combined strategy after removing an option
@@ -835,26 +877,73 @@ const board = Dashboards.board("container", {
                 shortPutBtn.style.opacity = !existingPut.isLong ? "1" : "0.6";
               }
           
-              // Function to update option in chart
+              // Find this function in the afterSetValue handler and replace it
               function updateOptionInChart(strike, isCall, isLong) {
                 const component = board.getComponentByCellId("chart");
+                
+                // Check if this option is already in the chart
+                const optionType = isCall ? "Call" : "Put";
+                const positionType = isLong ? "Long" : "Short";
+                const expDate = formatExpirationDate(activeExpiration);
+                const seriesName = `${positionType} ${optionType} ${strike} (${expDate})`;
+                
+                const existingSeries = component.chart.series.find(s => s.name === seriesName);
+                
+                // Count current option series (excluding combined strategy)
+                const optionSeriesCount = component.chart.series.filter(s => 
+                  s.name !== "Combined Strategy").length;
+                
+                // If this is a new option and we're at max capacity, show warning and rollback selection
+                if (!existingSeries && optionSeriesCount >= MAX_OPTIONS_IN_CHART) {
+                  console.log(`Max options limit reached (${MAX_OPTIONS_IN_CHART}), rolling back selection`);
+                  
+                  // Show warning
+                  showMaxOptionsWarning();
+                  
+                  // Rollback the option selection
+                  if (isCall) {
+                    // Reset call buttons
+                    longCallBtn.style.opacity = "1";
+                    shortCallBtn.style.opacity = "1";
+                    
+                    // Remove from selected options
+                    selectedOptions.calls = selectedOptions.calls.filter(call => 
+                      !(call.strike === strike && call.expiration === activeExpiration));
+                  } else {
+                    // Reset put buttons
+                    longPutBtn.style.opacity = "1";
+                    shortPutBtn.style.opacity = "1";
+                    
+                    // Remove from selected options
+                    selectedOptions.puts = selectedOptions.puts.filter(put => 
+                      !(put.strike === strike && put.expiration === activeExpiration));
+                  }
+                  
+                  // Check if any option remains for this row/expiration
+                  const isAnyCallSelected = selectedOptions.calls.some(c => 
+                    c.strike === strike && c.expiration === activeExpiration);
+                  const isAnyPutSelected = selectedOptions.puts.some(p => 
+                    p.strike === strike && p.expiration === activeExpiration);
+                  
+                  // Remove highlight if no options are left
+                  if (rowElement && !isAnyCallSelected && !isAnyPutSelected) {
+                    rowElement.classList.remove('row-highlight');
+                  }
+                  
+                  return;
+                }
+                
                 const rowData = isCall 
                   ? optionsChain[activeExpiration].calls.find(c => c.strike === strike) 
                   : optionsChain[activeExpiration].puts.find(p => p.strike === strike);
                 const premium = rowData.last;
-                const optionType = isCall ? "Call" : "Put";
-                const positionType = isLong ? "Long" : "Short";
-                
-                // Include expiration date in series name
-                const expDate = formatExpirationDate(activeExpiration);
-                const seriesName = `${positionType} ${optionType} ${strike} (${expDate})`;
                 
                 // Calculate payoff for different stock prices
                 const payoffSeries = stockPrices.map(price => ({
                   x: price,
                   y: isCall 
-                     ? calculateCallPayoff(price, strike, premium, isLong)
-                     : calculatePutPayoff(price, strike, premium, isLong)
+                    ? calculateCallPayoff(price, strike, premium, isLong)
+                    : calculatePutPayoff(price, strike, premium, isLong)
                 }));
                 
                 // Use different line styles for different expiration dates
@@ -1414,6 +1503,39 @@ function getExpirationLineStyle(expiration) {
   return styles[index % styles.length];
 }
 
+function showMaxOptionsWarning() {
+  // Get the strategy info text element
+  const strategyInfoText = document.getElementById('strategyInfoText');
+  
+  if (!strategyInfoText) {
+    console.error("Strategy info text element not found");
+    return;
+  }
+  
+  // Save the original text to restore later
+  const originalText = strategyInfoText.innerHTML;
+  
+  // Create warning message with better styling
+  strategyInfoText.innerHTML = `
+    <div style="background-color: rgba(217, 83, 79, 0.1); 
+                color: #d9534f; 
+                padding: 8px 12px; 
+                border-radius: 4px; 
+                border: 1px solid #d9534f; 
+                margin-bottom: 10px; 
+                font-size: 14px;">
+      <strong>Warning:</strong> Maximum ${MAX_OPTIONS_IN_CHART} options can be displayed in chart. 
+      Remove an option to add another.
+    </div>
+    ${originalText}
+  `;
+  
+  // Auto-dismiss after 4 seconds
+  setTimeout(() => {
+    strategyInfoText.innerHTML = originalText;
+  }, 4000);
+}
+
 // Add this function at the end of your file to ensure event binding
 document.addEventListener('DOMContentLoaded', function() {
   // Wait for everything to be fully loaded and rendered
@@ -1447,9 +1569,9 @@ document.addEventListener('DOMContentLoaded', function() {
         };
       });
       
-      console.log("Expiration tab event listeners attached successfully");
+      console.log("listeners attached ");
     } else {
-      console.error("Failed to find expiration tabs for event binding");
+      console.error("Feil event");
     }
   }, 1000);
 });
