@@ -1,122 +1,71 @@
-/* Import Highcharts CSS */
+/* Core imports and variables */
 @import url("https://code.highcharts.com/css/highcharts.css");
 @import url("https://code.highcharts.com/dashboards/css/dashboards.css");
 @import url("https://code.highcharts.com/dashboards/css/datagrid.css");
 
-/* Define custom colors for our options dashboard */
 :root {
-  --call-long-color: #2e7d32; /* Green for call long */
+  --call-long-color: #2e7d32;
   --call-short-color: var(--highcharts-color-2);
-  --put-long-color: #c62828; /* Red for put long */
+  --put-long-color: #c62828;
   --put-short-color: var(--highcharts-color-3);
-  --combined-strategy-color: #0066ff; /* Blue for combined strategy */
-  
-  /* Clear color definitions for area fills */
-  --profit-area-color: rgba(46, 125, 50, 0.3); /* Green for profit areas */
-  --loss-area-color: rgba(255, 68, 68, 0.3); /* Red for loss areas */
-  --bullish-badge-text: #1a4314;
-  --bearish-badge-text: #7f0000;
-  --neutral-badge-text: #343a40;
+  --combined-strategy-color: #0066ff;
+  --row-highlight-color: rgba(70, 70, 70, 0.15); /* Strong grey for highlighting */
 }
 
-/* General styling for the container */
+/* Strategy warning */
+.strategy-warning {
+  background-color: rgba(217, 83, 79, 0.1);
+  color: #d9534f;
+  padding: 12px 15px;
+  border-radius: 4px;
+  border: 1px solid #d9534f;
+  margin-top: 15px;
+  font-weight: bold;
+  text-align: center;
+  transition: opacity 1s;
+}
+
+/* Layout structure */
 #container {
   background-color: var(--highcharts-neutral-color-3);
-  padding: 15px;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  font-size: 1rem;
+  padding: 18px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 1.05rem;
 }
 
-/* Main dashboard layout */
-.highcharts-dashboards-wrapper {
-  max-width: 100%;
-  margin: 0 auto;
-}
-
-/* Row styling */
 .highcharts-dashboards-row {
   display: flex;
-  gap: 15px;
-  margin-bottom: 15px;
-  width: 100%;
+  gap: 18px;
+  margin-bottom: 18px;
 }
 
-/* Cell styling - make sure they fill available width */
-.highcharts-dashboards-cell {
-  flex: 1;
-  min-width: 0; /* Important for flex items */
-}
+#row-1 { min-height: 80px; flex-wrap: wrap; }
+#row-2 { min-height: 420px; }
+#row-3 { min-height: 460px; }
 
-/* Specific row heights */
-#row-1 {
-  min-height: 70px;
-  flex-wrap: wrap;
-}
+#row-2 .highcharts-dashboards-cell:nth-child(1) { flex: 7; }
+#row-2 .highcharts-dashboards-cell:nth-child(2) { flex: 3; }
 
-#row-2 {
-  min-height: 400px;
-  flex-wrap: nowrap;
-}
-
-#row-3 {
-  min-height: 450px;
-  flex-wrap: nowrap;
-}
-
-/* Specific cell proportions */
-#row-2 .highcharts-dashboards-cell:nth-child(1) {
-  flex: 7; /* Chart gets 70% of the row */
-}
-
-#row-2 .highcharts-dashboards-cell:nth-child(2) {
-  flex: 3; /* Strategy info gets 30% of the row */
-}
-
-/* Hide the Selected Options panel */
+/* Hide selected options panel and expand grid */
 .highcharts-dashboards-component[data-id="selectedOptions"],
-#row-3 .highcharts-dashboards-cell:nth-child(1) {
-  display: none !important;
-}
-
-/* Make Options Chain take full width in row-3 */
-#row-3 .highcharts-dashboards-cell:nth-child(2) {
-  flex: 1 !important;
-  width: 100% !important;
-  max-width: 100% !important;
-}
+#row-3 .highcharts-dashboards-cell:nth-child(1) { display: none !important; }
+#row-3 .highcharts-dashboards-cell:nth-child(2) { flex: 1 !important; width: 100% !important; }
 
 /* Component styling */
 .highcharts-dashboards-component {
   background-color: var(--highcharts-neutral-color-0);
   border-radius: 8px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
   height: 100%;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
 }
 
-/* Component titles */
-.highcharts-dashboards-component-title {
-  padding: 10px 15px;
-  font-size: 1.1rem;
-  font-weight: 500;
-  color: var(--highcharts-neutral-color-100);
-  border-bottom: 1px solid var(--highcharts-neutral-color-5);
-}
-
-/* Component content area */
-.highcharts-dashboards-component-content {
-  flex: 1;
-  overflow: auto;
-  padding: 10px;
-}
-
-/* Fix for charts to properly expand */
+/* Chart specifics */
 #chart .highcharts-dashboards-component-content {
-  overflow: visible;
   padding: 0;
   height: 100%;
+  overflow: visible;
 }
 
 #chart .highcharts-container {
@@ -124,174 +73,134 @@
   height: 100% !important;
 }
 
-/* Chart styling */
-#chart .highcharts-background {
-  fill: var(--highcharts-neutral-color-0);
+/* Remove dots from chart */
+#chart .highcharts-markers {
+  display: none !important;
+}
+
+#chart .highcharts-point {
+  display: none !important;
 }
 
 /* Chart controls */
 #chart-controls {
   position: absolute;
-  top: 10px;
-  right: 10px;
+  top: 12px;
+  right: 12px;
   z-index: 100;
   display: flex;
   gap: 10px;
 }
 
-.chart-control-btn {
-  padding: 6px 12px;
-  background-color: var(--highcharts-neutral-color-10);
+.chart-control-btn, .chart-control-toggle {
+  background-color: var(--highcharts-neutral-color-5);
   border: none;
   border-radius: 4px;
+  font-size: 0.85rem;
+  padding: 8px 14px; /* Larger padding */
+}
+
+.chart-control-toggle label {
+  display: flex;
+  align-items: center;
   cursor: pointer;
-  font-family: inherit;
-  font-size: 0.8rem;
+  font-size: 0.85rem;
+}
+
+.chart-control-toggle span {
+  margin-left: 6px;
 }
 
 /* Strategy info panel */
 #strategyInfoContainer {
-  padding: 15px;
   background-color: var(--highcharts-neutral-color-3);
   border-radius: 6px;
-  margin: 0;
-  height: calc(100% - 30px);
+  padding: 18px;
+  height: calc(100% - 36px);
   overflow-y: auto;
-  box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.05);
 }
 
-#strategyInfoText {
-  font-size: 0.95rem;
-  line-height: 1.5;
-  color: #333; /* Ensure text is dark/black */
+#strategyInfoText { 
+  color: #333;
+  font-size: 1rem;
+  line-height: 1.6;
 }
 
-#strategyInfoText h3 {
-  margin-top: 0;
-  margin-bottom: 12px;
-  color: #333 !important; /* Force black color for title */
-  font-weight: 600;
-  font-size: 1.2rem;
+#strategyInfoText h3 { 
+  font-size: 1.3rem; 
   border-bottom: 1px solid var(--highcharts-neutral-color-10);
   padding-bottom: 8px;
+  margin-top: 0;
+  margin-bottom: 12px;
 }
 
-#strategyInfoText p {
-  margin-bottom: 10px;
-  line-height: 1.6;
-  color: #333 !important;
-}
-
-#strategyInfoText strong {
-  font-weight: 600;
-  color: #333 !important;
-}
-
-/* Strategy attributes */
-.strategy-attribute {
-  background-color: var(--highcharts-neutral-color-5);
-  padding: 8px 12px;
-  border-radius: 4px;
-  margin: 8px 0;
-}
+.max-profit { color: #2e7d32 !important; font-weight: 500; }
+.max-loss { color: #c62828 !important; font-weight: 500; }
 
 /* Strategy badges */
 .strategy-badge {
   display: inline-block;
-  padding: 4px 8px;
+  padding: 6px 10px;
   border-radius: 4px;
-  font-size: 0.8rem;
-  margin-top: 5px;
+  font-size: 0.85rem;
+  margin-top: 6px;
   font-weight: 500;
 }
 
-.bullish-strategy {
-  background-color: rgba(0, 128, 0, 0.15); /* Green */
-  color: var(--call-long-color);
-}
-
-.bearish-strategy {
-  background-color: rgba(255, 0, 0, 0.15); /* Red */
-  color: var(--put-long-color);
-}
-
-.neutral-strategy {
-  background-color: rgba(128, 128, 128, 0.15); /* Grey */
-  color: var(--combined-strategy-color);
-}
-
-/* Enhanced styling for different strategy elements */
-.max-profit {
-  color: #2e7d32 !important; /* Green color for profit */
-  font-weight: 500;
-}
-
-.max-loss {
-  color: #c62828 !important; /* Red color for loss */
-  font-weight: 500;
-}
+.bullish-strategy { background-color: rgba(0, 128, 0, 0.15); color: var(--call-long-color); }
+.bearish-strategy { background-color: rgba(255, 0, 0, 0.15); color: var(--put-long-color); }
+.neutral-strategy { background-color: rgba(128, 128, 128, 0.15); color: var(--combined-strategy-color); }
 
 /* Expiration tabs */
 #expiration-tabs {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  padding: 5px 0;
+  gap: 8px;
+  padding: 6px 0;
 }
 
 .expiration-tab {
-  padding: 6px 12px;
-  background-color: var(--highcharts-neutral-color-5);
+  padding: 8px 14px;
+  background-color: #f8f9fa;
   border: none;
   border-radius: 4px;
-  color: var(--highcharts-neutral-color-100);
+  color: #333;
   cursor: pointer;
-  font-family: inherit;
-  font-size: 0.85rem;
-  transition: background-color 0.2s, color 0.2s;
+  font-size: 0.9rem;
 }
 
 .expiration-tab.active {
-  background-color: var(--highcharts-color-0);
+  background-color: #007bff;
   color: #fff;
-  font-weight: 500;
+  font-weight: bold;
 }
 
 /* Option buttons */
 .option-btn {
-  font-family: inherit;
-  font-size: 0.75rem;
-  padding: 4px 8px;
+  font-size: 0.8rem;
+  padding: 6px 10px;
   border-radius: 3px;
   border: none;
   cursor: pointer;
-  margin: 2px 0;
-  transition: opacity 0.2s, transform 0.15s;
+  transition: all 0.2s;
 }
 
-.option-btn:hover {
-  transform: translateY(-1px);
+.option-btn:hover { transform: translateY(-1px); }
+.option-btn.selected { 
+  opacity: 1;
+  box-shadow: 0 0 0 2px #fff, 0 0 0 4px currentColor;
+  font-weight: bold;
+}
+.option-btn.inactive {
+  opacity: 0.6;
+  filter: grayscale(40%);
+  transform: scale(0.95);
 }
 
-.call-long {
-  background-color: var(--call-long-color);
-  color: white;
-}
-
-.call-short {
-  background-color: var(--call-short-color);
-  color: white;
-}
-
-.put-long {
-  background-color: var(--put-long-color);
-  color: white;
-}
-
-.put-short {
-  background-color: var(--put-short-color);
-  color: white;
-}
+.call-long { background-color: var(--call-long-color); color: white; }
+.call-short { background-color: var(--call-short-color); color: white; }
+.put-long { background-color: var(--put-long-color); color: white; }
+.put-short { background-color: var(--put-short-color); color: white; }
 
 /* Strike cell styling */
 .strike-cell {
@@ -304,282 +213,68 @@
   text-align: center;
   width: 30%;
   font-weight: bold;
+  font-size: 0.95rem;
 }
 
 .call-buttons, .put-buttons {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 4px;
   width: 45%;
 }
 
-/* Selected options table */
-#selected-options-container table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-bottom: 15px;
+/* Grid styling */
+.highcharts-datagrid-container { border: none; }
+.highcharts-datagrid-container th { 
+  background-color: var(--highcharts-neutral-color-5);
   font-size: 0.9rem;
-}
-
-#selected-options-container th,
-#selected-options-container td {
-  padding: 8px 12px;
-  border: 1px solid var(--highcharts-neutral-color-20);
-  text-align: left;
-}
-
-#selected-options-container th {
-  background-color: var(--highcharts-neutral-color-10);
-  font-weight: 500;
-}
-
-#selected-options-container tr:nth-child(even) {
-  background-color: var(--highcharts-neutral-color-5);
-}
-
-/* Visibility toggle */
-.chart-control-toggle {
-  display: flex;
-  align-items: center;
-  background-color: var(--highcharts-neutral-color-5);
-  padding: 6px 12px;
-  border-radius: 4px;
-}
-
-.chart-control-toggle label {
-  display: flex;
-  align-items: center;
-  font-size: 0.8rem;
-  cursor: pointer;
-}
-
-.chart-control-toggle span {
-  margin-left: 5px;
-}
-
-/* DataGrid specific styling */
-.highcharts-datagrid-container {
-  border: none;
-  font-family: inherit;
-}
-
-.highcharts-datagrid-container table {
-  border: 0;
-}
-
-.highcharts-datagrid-container th {
-  background-color: var(--highcharts-neutral-color-5);
-  font-weight: 500;
-  font-size: 0.85rem;
-  padding: 8px 12px;
-}
-
-.highcharts-datagrid-row {
-  background-color: var(--highcharts-neutral-color-0);
-}
-
-.highcharts-datagrid-row:nth-child(even) {
-  background-color: var(--highcharts-neutral-color-3);
+  padding: 10px;
 }
 
 .highcharts-datagrid-cell {
-  font-size: 0.85rem;
-  padding: 6px 12px;
+  font-size: 0.9rem;
+  padding: 8px 10px;
 }
 
-/* Override style for ODD rows - using blue highlighting instead of green */
-tr.highcharts-datagrid-row-odd.row-highlight td {
-    background-color: rgba(135, 206, 250, 0.2) !important; 
-    transition: background-color 0.15s ease-in-out;
-}
-
-/* Override style for EVEN rows - using blue highlighting instead of green */
+/* GREY ROW HIGHLIGHTING (changed from green) */
+tr.highcharts-datagrid-row-odd.row-highlight td,
 tr.highcharts-datagrid-row-even.row-highlight td {
-    background-color: rgba(135, 206, 250, 0.2) !important;
-    transition: background-color 0.15s ease-in-out;
+  background-color: var(--row-highlight-color) !important;
+  transition: background-color 0.15s ease-in-out;
 }
 
-/* Series colors and styling in styled mode */
-.call-long-series .highcharts-graph {
-  stroke: var(--call-long-color);
-  stroke-width: 1.5px;
-}
+/* Chart series styling - thicker lines for better visibility */
+.call-long-series .highcharts-graph { stroke: var(--call-long-color); stroke-width: 2px; }
+.call-short-series .highcharts-graph { stroke: var(--call-short-color); stroke-width: 2px; }
+.put-long-series .highcharts-graph { stroke: var(--put-long-color); stroke-width: 2px; }
+.put-short-series .highcharts-graph { stroke: var(--put-short-color); stroke-width: 2px; }
+.combined-strategy-series .highcharts-graph { stroke: var(--combined-strategy-color); stroke-width: 3px; }
 
-.call-short-series .highcharts-graph {
-  stroke: var(--call-short-color);
-  stroke-width: 1.5px;
-}
+/* Plot styling */
+.call-strike-line { stroke: var(--call-long-color); stroke-opacity: 0.4; }
+.put-strike-line { stroke: var(--put-long-color); stroke-opacity: 0.4; }
+.call-breakeven-line { stroke: var(--call-short-color); stroke-opacity: 0.4; }
+.put-breakeven-line { stroke: var(--put-short-color); stroke-opacity: 0.4; }
+.combined-breakeven-line { stroke: var(--combined-strategy-color); stroke-opacity: 0.6; stroke-width: 1.5px; }
 
-.put-long-series .highcharts-graph {
-  stroke: var(--put-long-color);
-  stroke-width: 1.5px;
-}
+/* Area colors */
+.highcharts-area { fill: #0066ff !important; fill-opacity: 0.3; }
+.highcharts-negative { fill: #ff4444 !important; fill-opacity: 0.3; }
+.combined-strategy-series .highcharts-area, .combined-strategy-series .highcharts-negative { fill-opacity: 0.4; }
 
-.put-short-series .highcharts-graph {
-  stroke: var(--put-short-color);
-  stroke-width: 1.5px;
-}
-
-.combined-strategy-series .highcharts-graph {
-  stroke: var(--combined-strategy-color);
-  stroke-width: 2.5px;
-  stroke-opacity: 0.9;
-}
-
-/* Plot line styling - smaller and less intrusive */
-.call-strike-line {
-  stroke: var(--call-long-color);
-  stroke-opacity: 0.4;
-  stroke-width: 1px;
-}
-
-.put-strike-line {
-  stroke: var(--put-long-color);
-  stroke-opacity: 0.4;
-  stroke-width: 1px;
-}
-
-.call-breakeven-line {
-  stroke: var(--call-short-color);
-  stroke-opacity: 0.4;
-  stroke-width: 1px;
-}
-
-.put-breakeven-line {
-  stroke: var(--put-short-color);
-  stroke-opacity: 0.4;
-  stroke-width: 1px;
-}
-
-.combined-breakeven-line {
-  stroke: var(--combined-strategy-color);
-  stroke-width: 1.5px;
-  stroke-opacity: 0.6;
-}
-
-/* Smaller plot line labels */
-.highcharts-plot-line-label {
-  font-size: 10px !important;
-}
-
-/* SIMPLIFIED GRADIENT STYLING - RED FOR NEGATIVE, BLUE FOR POSITIVE */
-/* Remove all other area styling and use just these rules */
-
-.highcharts-area {
-  fill: #0066ff !important; /* Blue for profit */
-  fill-opacity: 0.3;
-}
-
-.highcharts-negative {
-  fill: #ff4444 !important; /* Red for loss */
-  fill-opacity: 0.3;
-}
-
-/* Make combined strategy slightly more pronounced */
-.combined-strategy-series .highcharts-area,
-.combined-strategy-series .highcharts-negative {
-  fill-opacity: 0.4;
-}
-
-/* Make markers smaller and only visible on hover */
-.highcharts-point {
-  r: 2px !important;
-  stroke-width: 1px;
-}
-
-.highcharts-markers {
-  opacity: 0;
-}
-
-.highcharts-series-hover .highcharts-markers {
-  opacity: 1;
-}
-
-/* Make plotlines thinner and less intrusive */
-.highcharts-plot-line {
-  stroke-width: 1px !important;
-  stroke-opacity: 0.4;
-}
-
-.highcharts-plot-line-label {
-  font-size: 10px !important; /* Smaller labels */
-}
-
-/* Make sure grid has enough height and scrolls properly */
-#grid .highcharts-dashboards-component {
-  min-height: 450px;
-}
-
-#grid .highcharts-dashboards-component-content {
-  padding: 0;
-}
-
-/* Responsive design */
+/* Responsive design - mobile-first approach */
 @media (max-width: 992px) {
-  #chart-controls {
-    position: static;
-    margin-bottom: 10px;
-    justify-content: flex-end;
-  }
-  
-  #row-2, #row-3 {
-    flex-direction: column;
-  }
-  
-  #row-2 .highcharts-dashboards-cell,
-  #row-3 .highcharts-dashboards-cell {
-    flex: 1 1 auto;
-    width: 100%;
-  }
-  
-  /* Ensure minimum heights for charts on mobile */
-  #chart .highcharts-dashboards-component {
-    min-height: 350px;
-  }
-  
-  /* Make sure grid is scrollable horizontally on small screens */
-  #grid .highcharts-dashboards-component-content {
-    overflow-x: auto;
-  }
+  #chart-controls { position: static; margin-bottom: 10px; }
+  #row-2, #row-3 { flex-direction: column; }
 }
 
 @media (max-width: 768px) {
-  .strike-cell {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .strike-value {
-    width: 100%;
-    margin: 5px 0;
-  }
-
-  .call-buttons, .put-buttons {
-    width: 100%;
+  .strike-cell { flex-direction: column; }
+  .strike-value { width: 100%; margin: 6px 0; }
+  .call-buttons, .put-buttons { 
+    width: 100%; 
     flex-direction: row;
     justify-content: space-around;
   }
-  
-  .call-buttons .option-btn,
-  .put-buttons .option-btn {
-    flex-grow: 1;
-    margin: 2px;
-  }
-
-  #strategyInfoContainer {
-    padding: 12px;
-  }
-
-  #strategyInfoText h3 {
-    font-size: 1.1rem;
-  }
-
-  #strategyInfoText {
-    font-size: 0.9rem;
-  }
-
-  #chart-controls {
-    flex-wrap: wrap;
-    justify-content: center;
-  }
+  .call-buttons .option-btn, .put-buttons .option-btn { flex-grow: 1; margin: 3px; }
 }
