@@ -1168,6 +1168,7 @@ function detectStrategy(selectedOptions) {
     }
   }
   
+  // Check for single-expiry strategies within each expiration date
   for (const expiry in optionsByExpiry) {
     const options = optionsByExpiry[expiry];
     const result = detectSingleExpiryStrategy(options, expiry);
@@ -1177,6 +1178,7 @@ function detectStrategy(selectedOptions) {
   return null;
 }
 
+// Option detection for single expiry
 function detectSingleExpiryStrategy(options, expirationDate) {
   const { calls, puts } = options;
   
@@ -1383,8 +1385,10 @@ function showMaxOptionsWarning() {
   warningEl.className = 'strategy-warning';
   warningEl.textContent = `Maximum ${MAX_OPTIONS_IN_CHART} options can be displayed in chart. Remove an option to add another.`;
   
+  // Add the warning to the bottom of the strategy info container
   strategyInfoContainer.appendChild(warningEl);
   
+  // Set a timeout to remove the warning
   setTimeout(() => {
     if (warningEl.parentNode) {
       warningEl.style.opacity = '0';
