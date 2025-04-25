@@ -1,6 +1,5 @@
 DataGrid.AST.bypassHTMLFiltering = true;
 
-// Enable styled mode for Highcharts
 Highcharts.setOptions({
   chart: {
     styledMode: true
@@ -20,7 +19,6 @@ function calculatePutPayoff(price, strike, premium, isLong = true) {
   return multiplier * (Math.max(strike - price, 0) - premium) * 100;
 }
 
-// Replace the callsData and putsData with a multi-expiry structure
 const optionsChain = {
   "2025-04-18": {
     calls: [
@@ -122,48 +120,41 @@ function formatExpirationDate(dateStr) {
   });
 }
 
-// Update the selectedOptions to include expiration date
 const selectedOptions = {
   calls: [], // Will include {strike, premium, rowIndex, isLong, expiration}
   puts: []  // Will include {strike, premium, rowIndex, isLong, expiration}
 };
 
 
-// Replace the current updateOptionsGrid function with this version
 function updateOptionsGrid(expirationDate) {
+
+  //bugfix-stuff kan fjernes senere
   console.log("Updating grid with expiration date:", expirationDate);
   
-  // Get the data for the selected expiration date
   const dateData = optionsChain[expirationDate];
   if (!dateData) {
     console.error("No data found for expiration date:", expirationDate);
     return;
   }
   
-  // First, reset all selections for the previous date
   const chartComponent = board.getComponentByCellId("chart");
   if (chartComponent && chartComponent.chart) {
-    // Reset selected options
     selectedOptions.calls = [];
     selectedOptions.puts = [];
 
-    // Clear all row highlights 
     document.querySelectorAll("#grid .highcharts-datagrid-tbody tr").forEach(row => {
     row.classList.remove('row-highlight');
         });
     
-    // IMPORTANT: Also clear the selected options table 
     const optionsContainer = document.getElementById("selected-options-container");
     if (optionsContainer) {
       optionsContainer.innerHTML = "<p>No options selected</p>";
     }
     
-    // Remove all series
     while (chartComponent.chart.series.length > 0) {
       chartComponent.chart.series[0].remove(false);
     }
     
-    // Reset plot lines
     chartComponent.chart.xAxis[0].update({
       plotLines: [{
         value: 0,
@@ -176,19 +167,15 @@ function updateOptionsGrid(expirationDate) {
       }]
     }, false);
     
-    // Reset chart title and axes
     chartComponent.chart.setTitle({ text: "Options Data" });
     chartComponent.chart.xAxis[0].setTitle({ text: "Strike Price" });
     chartComponent.chart.yAxis[0].setTitle({ text: "Value" });
     
-    // Hide strategy info
-    // Hide strategy info
     const strategyInfoText = document.getElementById('strategyInfoText');
     if (strategyInfoText) {
       strategyInfoText.textContent = "Select options to view strategy analysis";
     }
         
-    // Reset button opacities - add this line
     document.querySelectorAll(".option-btn").forEach(btn => {
       btn.style.opacity = "1";
     });
@@ -202,7 +189,6 @@ function updateOptionsGrid(expirationDate) {
   const putsData = dateData.puts;
   
   try {
-    // First update our chart (this part works fine)
     const chartComponent = board.getComponentByCellId("chart");
     if (chartComponent && chartComponent.chart) {
       chartComponent.chart.xAxis[0].update({
@@ -211,23 +197,17 @@ function updateOptionsGrid(expirationDate) {
       chartComponent.chart.redraw();
     }
     
-    // For the grid, we'll use a more direct approach
-    // Instead of recreating the whole component, we'll update the existing HTML table
-    
-    // Step 1: Get references to the grid's HTML structure
     const gridContainer = document.getElementById("grid");
     if (!gridContainer) return;
     
-    // Wait for the next frame to ensure DOM is ready
+    // Wait to ensure DOM is ready
     setTimeout(() => {
-      // Step 2: Find all table rows that contain our option data
       const dataRows = gridContainer.querySelectorAll("tbody tr");
       if (dataRows.length === 0) {
         console.error("No data rows found in grid");
         return;
       }
       
-      // Step 3: Update each row with new data
       dataRows.forEach((row, rowIndex) => {
         if (rowIndex >= callsData.length) return;
         
@@ -235,11 +215,6 @@ function updateOptionsGrid(expirationDate) {
         const put = putsData[rowIndex];
         const cells = row.querySelectorAll("td");
         
-        // We need to find the cell indices that correspond to each data field
-        // Skip updating the Strike cell (which contains our buttons)
-        // The order should match the original data layout
-        
-        // Update call data (cells 0-7)
         if (cells.length > 0) updateCellIfNotStrike(cells[0], call.bid);
         if (cells.length > 1) updateCellIfNotStrike(cells[1], call.ask);
         if (cells.length > 2) updateCellIfNotStrike(cells[2], call.last);
@@ -249,9 +224,6 @@ function updateOptionsGrid(expirationDate) {
         if (cells.length > 6) updateCellIfNotStrike(cells[6], call.iv);
         if (cells.length > 7) updateCellIfNotStrike(cells[7], call.delta);
         
-        // Skip the Strike cell
-        
-        // Update put data (cells 9-16)
         if (cells.length > 9) updateCellIfNotStrike(cells[9], put.bid);
         if (cells.length > 10) updateCellIfNotStrike(cells[10], put.ask);
         if (cells.length > 11) updateCellIfNotStrike(cells[11], put.last);
@@ -271,9 +243,7 @@ function updateOptionsGrid(expirationDate) {
 }
 
 function updateCellIfNotStrike(cell, value) {
-  // Don't update cells that contain Strike buttons
   if (cell && !cell.querySelector('.option-btn')) {
-    // Format numbers nicely
     if (typeof value === 'number') {
       cell.textContent = value.toFixed(2);
     } else {
@@ -282,8 +252,6 @@ function updateCellIfNotStrike(cell, value) {
   }
 }
 
-// Build our options data connector using the mapping logic.
-// Replace your current board definition with this properly styled version
 const board = Dashboards.board("container", {
   dataPool: {
     connectors: [
@@ -338,7 +306,6 @@ const board = Dashboards.board("container", {
       }
     ]
   },
-// Replace your current gui.layouts with this:
 
   gui: {
     layouts: [{
@@ -394,7 +361,6 @@ const board = Dashboards.board("container", {
             tab.addEventListener('click', function() {
               const selectedExpiration = this.id.replace('expiration-tab-', '');
       
-              // Update active state of tabs using CSS classes
               expirationTabs.forEach(t => {
                 t.classList.toggle('active', t.id === `expiration-tab-${selectedExpiration}`);
               });
@@ -417,7 +383,7 @@ const board = Dashboards.board("container", {
             mouseWheel: false
           }
         },
-        title: null, // Component handles title
+        title: null, 
         legend: { enabled: true },
         credits: { enabled: false },
         xAxis: {
@@ -456,11 +422,9 @@ const board = Dashboards.board("container", {
           const chartContainer = document.getElementById("chart");
           chartContainer.style.position = "relative";
           
-          // Create controls container
           const controlsContainer = document.createElement("div");
           controlsContainer.id = "chart-controls";
           
-          // Add visibility toggle with better styling
           const visibilityToggle = document.createElement("div");
           visibilityToggle.className = "chart-control-toggle";
           visibilityToggle.innerHTML = `
@@ -470,100 +434,29 @@ const board = Dashboards.board("container", {
             </label>
           `;
           
-          // Add reset button with better styling
           const resetButton = document.createElement("button");
           resetButton.textContent = "Reset Chart";
           resetButton.className = "chart-control-btn";
           
-          // Reset button functionality
-        // Find the resetButton event listener in your chart component's mount event and update it:
-// Find this in the chart component's mount event handler and replace the resetButton click event with this:
-resetButton.addEventListener("click", () => {
-  // Get the chart component
-  const component = board.getComponentByCellId("chart");
-  
-  // Reset selected options
-  selectedOptions.calls = [];
-  selectedOptions.puts = [];
-  
-  // Clear the selected options table
-  const optionsContainer = document.getElementById("selected-options-container");
-  if (optionsContainer) {
-    optionsContainer.innerHTML = "<p>No options selected</p>";
-  }
-  
-  // Reset strategy info text
-  const strategyInfoText = document.getElementById("strategyInfoText");
-  if (strategyInfoText) {
-    strategyInfoText.textContent = "Select options to view strategy analysis";
-  }
-  
-  // Remove all series
-  while (component.chart.series.length > 0) {
-    component.chart.series[0].remove(false);
-  }
-  
-  // Reset plot lines
-  component.chart.xAxis[0].update({
-    plotLines: [{
-      value: 0,
-      className: 'highcharts-break-even-line',
-      width: 1,
-      label: {
-        text: 'Break-even',
-        align: 'right'
-      }
-    }]
-  }, false);
-  
-  // Reset chart title and axes
-  component.chart.setTitle({ text: "Options Data" });
-  component.chart.xAxis[0].setTitle({ text: "Strike Price" });
-  component.chart.yAxis[0].setTitle({ text: "Value" });
-  
-  // Reset button opacities
-  document.querySelectorAll(".option-btn").forEach(btn => {
-    btn.style.opacity = "1";
-  });
-  
-  // The critical part: Clear all row highlights - use same approach as updateOptionsGrid
-  document.querySelectorAll("#grid .highcharts-datagrid-tbody tr").forEach(row => {
-    row.classList.remove('row-highlight');
-  });
-  
-  // For thoroughness, also try force-clearing any inline styles
-  document.querySelectorAll("#grid tr").forEach(row => {
-    row.style.backgroundColor = '';
-    Array.from(row.children).forEach(cell => {
-      cell.style.backgroundColor = '';
-    });
-  });
-  
-  // Ensure the checkbox is unchecked
-  document.getElementById('showCombinedOnly').checked = false;
-  
-  // Redraw the chart
-  component.chart.redraw();
-});
-          
-          // Add controls to container
+          resetButton.addEventListener("click", () => {
+            updateOptionsGrid(activeExpiration);
+          });
+
           controlsContainer.appendChild(visibilityToggle);
           controlsContainer.appendChild(resetButton);
           chartContainer.appendChild(controlsContainer);
-          
-          // Add event listener for visibility toggle
-          document.getElementById('showCombinedOnly').addEventListener('change', function() {
-            const showCombinedOnly = this.checked;
+
+          document.getElementById('showCombinedOnly')?.addEventListener('change', function() {
+            const isChecked = this.checked;
             const component = board.getComponentByCellId("chart");
-            
-            // Toggle visibility of individual option series
-            component.chart.series.forEach(series => {
-              if (series.name !== "Combined Strategy") {
-                series.setVisible(!showCombinedOnly, false);
-              }
-            });
-            
-            component.chart.redraw();
+            if (component && component.chart) {
+              component.chart.series.forEach(series => {
+                if (series.name !== "Combined Strategy") {
+                  series.setVisible(!isChecked, false);
+                }
+              });
+              component.chart.redraw();
+            }
           });
         }
       }
@@ -640,7 +533,6 @@ resetButton.addEventListener("click", () => {
           cells: {
             editable: false,
             formatter: function () {
-              // For the Strike column, use cleaner HTML with CSS classes
               if (this.column.id === "Strike") {
                 return `
                   <div class="strike-cell">
@@ -712,7 +604,6 @@ resetButton.addEventListener("click", () => {
               
               // Toggle active state for put buttons
               function togglePutActive(isLong) {
-                // Visual indication of active button
                 longPutBtn.style.opacity = isLong ? "1" : "0.6";
                 shortPutBtn.style.opacity = !isLong ? "1" : "0.6";
                 
@@ -720,15 +611,12 @@ resetButton.addEventListener("click", () => {
                   rowElement.classList.add('row-highlight');
                 }
 
-                // Check if put exists already in selectedOptions
                 const existingPutIndex = selectedOptions.puts.findIndex(put => 
                   put.strike === strikeValue && put.expiration === activeExpiration);
                 
                 if (existingPutIndex >= 0) {
-                  // Update existing put
                   selectedOptions.puts[existingPutIndex].isLong = isLong;
                 } else {
-                  // Add new put
                   const putData = optionsChain[activeExpiration].puts[rowIndex];
                   selectedOptions.puts.push({
                     strike: strikeValue,
@@ -746,7 +634,7 @@ resetButton.addEventListener("click", () => {
               // Remove option button click handler
               function removeOption(isCall) {
                 if (isCall) {
-                  // Reset button opacity
+
                   longCallBtn.style.opacity = "1";
                   shortCallBtn.style.opacity = "1";
                   
@@ -762,15 +650,12 @@ resetButton.addEventListener("click", () => {
                   );
                   existingSeries.forEach(series => series.remove());
                 } else {
-                  // Reset button opacity
                   longPutBtn.style.opacity = "1";
                   shortPutBtn.style.opacity = "1";
                   
-                  // Remove from selected options
                   selectedOptions.puts = selectedOptions.puts.filter(put => 
                     !(put.strike === strikeValue && put.expiration === activeExpiration));
                   
-                  // Remove from chart
                   const component = board.getComponentByCellId("chart");
                   const seriesName = `Put ${strikeValue} (${formatExpirationDate(activeExpiration)})`;
                   const existingSeries = component.chart.series.filter(s => 
@@ -862,7 +747,6 @@ resetButton.addEventListener("click", () => {
                 }
               });
               
-              // Set initial button states based on selected options
               const existingCall = selectedOptions.calls.find(call => 
                 call.strike === strikeValue && call.expiration === activeExpiration);
               if (existingCall) {
@@ -877,7 +761,6 @@ resetButton.addEventListener("click", () => {
                 shortPutBtn.style.opacity = !existingPut.isLong ? "1" : "0.6";
               }
           
-              // Find this function in the afterSetValue handler and replace it
               function updateOptionInChart(strike, isCall, isLong) {
                 const component = board.getComponentByCellId("chart");
                 
@@ -889,7 +772,6 @@ resetButton.addEventListener("click", () => {
                 
                 const existingSeries = component.chart.series.find(s => s.name === seriesName);
                 
-                // Count current option series (excluding combined strategy)
                 const optionSeriesCount = component.chart.series.filter(s => 
                   s.name !== "Combined Strategy").length;
                 
@@ -897,7 +779,6 @@ resetButton.addEventListener("click", () => {
                 if (!existingSeries && optionSeriesCount >= MAX_OPTIONS_IN_CHART) {
                   console.log(`Max options limit reached (${MAX_OPTIONS_IN_CHART}), rolling back selection`);
                   
-                  // Show warning
                   showMaxOptionsWarning();
                   
                   // Rollback the option selection
@@ -925,7 +806,6 @@ resetButton.addEventListener("click", () => {
                   const isAnyPutSelected = selectedOptions.puts.some(p => 
                     p.strike === strike && p.expiration === activeExpiration);
                   
-                  // Remove highlight if no options are left
                   if (rowElement && !isAnyCallSelected && !isAnyPutSelected) {
                     rowElement.classList.remove('row-highlight');
                   }
@@ -938,7 +818,6 @@ resetButton.addEventListener("click", () => {
                   : optionsChain[activeExpiration].puts.find(p => p.strike === strike);
                 const premium = rowData.last;
                 
-                // Calculate payoff for different stock prices
                 const payoffSeries = stockPrices.map(price => ({
                   x: price,
                   y: isCall 
@@ -946,15 +825,12 @@ resetButton.addEventListener("click", () => {
                     : calculatePutPayoff(price, strike, premium, isLong)
                 }));
                 
-                // Use different line styles for different expiration dates
                 const lineStyle = getExpirationLineStyle(activeExpiration);
                 
-                // For styled mode, use className instead of color
                 const seriesClassName = isCall 
                   ? (isLong ? 'call-long-series' : 'call-short-series')
                   : (isLong ? 'put-long-series' : 'put-short-series');
                 
-                // Add the new series
                 component.chart.addSeries({
                   name: seriesName,
                   data: payoffSeries,
@@ -964,19 +840,16 @@ resetButton.addEventListener("click", () => {
                   dashStyle: lineStyle
                 });
                 
-                // Update plotlines with strike and break-even points
                 updatePlotlines(strike, isCall, isLong, premium);
                 
                 // Update the combined strategy
                 updateCombinedStrategy();
               }
               
-              // Function to update plotlines
               function updatePlotlines(strike, isCall, isLong, premium) {
                 const component = board.getComponentByCellId("chart");
                 const optionType = isCall ? "Call" : "Put";
                 
-                // Remove existing plotlines for this option
                 const plotLines = component.chart.xAxis[0].options.plotLines || [];
                 component.chart.xAxis[0].update({
                   plotLines: plotLines.filter(line => 
@@ -986,7 +859,6 @@ resetButton.addEventListener("click", () => {
                   )
                 });
                 
-                // Add strike price plot line with className for styled mode
                 component.chart.xAxis[0].update({
                   plotLines: [...component.chart.xAxis[0].options.plotLines || [], {
                     value: strike,
@@ -1001,7 +873,6 @@ resetButton.addEventListener("click", () => {
                   }]
                 });
                 
-                // Calculate break-even point
                 let breakEven;
                 if (isCall) {
                   breakEven = isLong ? (strike + premium) : (strike - premium);
@@ -1009,7 +880,6 @@ resetButton.addEventListener("click", () => {
                   breakEven = isLong ? (strike - premium) : (strike + premium);
                 }
                 
-                // Add break-even plot line with className for styled mode
                 component.chart.xAxis[0].update({
                   plotLines: [...component.chart.xAxis[0].options.plotLines || [], {
                     value: breakEven,
@@ -1025,20 +895,15 @@ resetButton.addEventListener("click", () => {
                 });
               }
               
-              // Function to update combined strategy
-// Function to update combined strategy
 function updateCombinedStrategy() {
   const component = board.getComponentByCellId("chart");
   
-  // Update chart settings
   component.chart.setTitle({ text: "Option Payoff Analysis" });
   component.chart.xAxis[0].setTitle({ text: "Stock Price at Expiration" });
   component.chart.yAxis[0].setTitle({ text: "Profit/Loss ($)" });
   
-  // Get strategyInfoText element
   const strategyInfoText = document.getElementById("strategyInfoText");
   
-  // Add combined strategy if there are options selected
   if (selectedOptions.calls.length > 0 || selectedOptions.puts.length > 0) {
     // Calculate combined payoff
     const combinedData = stockPrices.map(price => {
@@ -1060,7 +925,6 @@ function updateCombinedStrategy() {
       };
     });
     
-    // Update or add combined series
     const existingSeries = component.chart.series.find(s => s.name === "Combined Strategy");
     if (existingSeries) {
       existingSeries.remove();
@@ -1075,7 +939,6 @@ function updateCombinedStrategy() {
       zIndex: 10
     });
     
-    // Apply the current visibility setting when adding new series
     const showCombinedOnly = document.getElementById('showCombinedOnly')?.checked;
     if (showCombinedOnly) {
       component.chart.series.forEach(series => {
@@ -1086,12 +949,10 @@ function updateCombinedStrategy() {
       component.chart.redraw();
     }
     
-    // Find combined break-even points (where y crosses zero)
     const breakEvenPoints = [];
     for (let i = 1; i < combinedData.length; i++) {
       if ((combinedData[i-1].y < 0 && combinedData[i].y >= 0) || 
           (combinedData[i-1].y >= 0 && combinedData[i].y < 0)) {
-        // Interpolate to find more precise break-even
         const x0 = combinedData[i-1].x;
         const x1 = combinedData[i].x;
         const y0 = combinedData[i-1].y;
@@ -1101,7 +962,6 @@ function updateCombinedStrategy() {
       }
     }
     
-    // Add break-even plot lines with className for styled mode
     breakEvenPoints.forEach((point, index) => {
       component.chart.xAxis[0].update({
         plotLines: [...component.chart.xAxis[0].options.plotLines || [], {
@@ -1118,11 +978,9 @@ function updateCombinedStrategy() {
       });
     });
     
-    // Show strategy info in the new component
     const strategy = detectStrategy(selectedOptions);
     
     if (strategy && strategyInfoText) {
-      // Determine strategy type class
       let strategyTypeClass = '';
       if (strategy.outlook.toLowerCase().includes('bullish')) {
         strategyTypeClass = 'bullish-strategy';
@@ -1164,12 +1022,10 @@ function updateCombinedStrategy() {
     // Update the selected options table
     addSelectedOptionTable();
   } else {
-    // Reset strategy info text when no options selected
     if (strategyInfoText) {
       strategyInfoText.textContent = "Select options to view strategy analysis";
     }
     
-    // Remove combined series if exists
     const existingSeries = component.chart.series.find(s => s.name === "Combined Strategy");
     if (existingSeries) {
       existingSeries.remove();
@@ -1186,9 +1042,10 @@ function updateCombinedStrategy() {
     }
   ]
 });
-// Add a function to detect option strategies
+
+
 function detectStrategy(selectedOptions) {
-  // Group options by expiration date for better strategy detection
+  //Using a dict option exp dates
   const optionsByExpiry = {};
   
   // Organize selected options by expiration date
@@ -1206,7 +1063,7 @@ function detectStrategy(selectedOptions) {
     optionsByExpiry[put.expiration].puts.push(put);
   });
   
-  // First check for multi-expiry strategies (calendar spreads, etc.)
+  // Check for multi-expiry strategies
   const expiryDates = Object.keys(optionsByExpiry);
   
   // Calendar Call Spread
@@ -1258,7 +1115,7 @@ function detectStrategy(selectedOptions) {
         type: "Diagonal Call Spread",
         description: `Short call at strike $${nearCall.strike} expiring ${formatExpirationDate(nearCall.expiration)}, 
                      long call at strike $${farCall.strike} expiring ${formatExpirationDate(farCall.expiration)}`,
-        outlook: "Moderately bullish with time decay advantages",
+        outlook: "Moderately bullish with time decay advantage",
         maxProfit: "Variable depending on stock movement and time decay",
         maxLoss: `Limited to net debit paid: $${((farCall.premium - nearCall.premium) * 100).toFixed(2)}`
       };
@@ -1296,18 +1153,17 @@ function detectStrategy(selectedOptions) {
     }
   }
   
-  // Now check for single-expiry strategies within each expiration date
+  // Check for single-expiry strategies within each expiration date
   for (const expiry in optionsByExpiry) {
     const options = optionsByExpiry[expiry];
     const result = detectSingleExpiryStrategy(options, expiry);
     if (result) return result;
   }
   
-  // If no specific strategy is detected
   return null;
 }
 
-// Function to detect strategies with options having the same expiry date
+// Option detection for single expiry
 function detectSingleExpiryStrategy(options, expirationDate) {
   const { calls, puts } = options;
   
@@ -1360,7 +1216,6 @@ function detectSingleExpiryStrategy(options, expirationDate) {
     const call = calls[0];
     const put = puts[0];
     
-    // Both long positions (Long Straddle/Strangle)
     if (call.isLong && put.isLong) {
       if (call.strike === put.strike) {
         const totalPremium = call.premium + put.premium;
@@ -1385,7 +1240,6 @@ function detectSingleExpiryStrategy(options, expirationDate) {
       }
     }
     
-    // Continue with other strategies...
   }
   
   // Bull Spread using Calls
@@ -1404,13 +1258,10 @@ function detectSingleExpiryStrategy(options, expirationDate) {
     }
   }
   
-  // Continue with other strategies following the same pattern...
   
   return null;
 }
 
-// Function to display selected options in a table
-// Function to display selected options in a table with cleaner HTML
 function addSelectedOptionTable() {
   const container = document.getElementById("selected-options-container");
   if (!container) {
@@ -1418,7 +1269,6 @@ function addSelectedOptionTable() {
     return;
   }
   
-  // Clear previous content
   container.innerHTML = "";
   
   if (selectedOptions.calls.length === 0 && selectedOptions.puts.length === 0) {
@@ -1426,10 +1276,8 @@ function addSelectedOptionTable() {
     return;
   }
   
-  // Create table element with no inline styles
   const table = document.createElement("table");
   
-  // Table header with no inline styles
   const thead = document.createElement("thead");
   const headerRow = document.createElement("tr");
   
@@ -1442,10 +1290,9 @@ function addSelectedOptionTable() {
   thead.appendChild(headerRow);
   table.appendChild(thead);
   
-  // Table body
   const tbody = document.createElement("tbody");
   
-  // Add calls to table
+  //Calls
   selectedOptions.calls.forEach(call => {
     const tr = document.createElement("tr");
     
@@ -1468,7 +1315,7 @@ function addSelectedOptionTable() {
     tbody.appendChild(tr);
   });
   
-  // Add puts to table
+  //Puts
   selectedOptions.puts.forEach(put => {
     const tr = document.createElement("tr");
     
@@ -1495,7 +1342,6 @@ function addSelectedOptionTable() {
   container.appendChild(table);
 }
 
-// Helper function to get different line styles for different expirations
 function getExpirationLineStyle(expiration) {
   const expirations = Object.keys(optionsChain);
   const index = expirations.indexOf(expiration);
@@ -1504,35 +1350,44 @@ function getExpirationLineStyle(expiration) {
 }
 
 function showMaxOptionsWarning() {
-  // Get the strategy info text element
-  const strategyInfoText = document.getElementById('strategyInfoText');
+  let warningEl = document.getElementById('chart-max-options-warning');
   
-  if (!strategyInfoText) {
-    console.error("Strategy info text element not found");
-    return;
+  if (!warningEl) {
+    warningEl = document.createElement('div');
+    warningEl.id = 'chart-max-options-warning';
+    warningEl.style.backgroundColor = 'rgba(217, 83, 79, 0.1)';
+    warningEl.style.color = '#d9534f';
+    warningEl.style.padding = '8px 12px';
+    warningEl.style.borderRadius = '4px';
+    warningEl.style.border = '1px solid #d9534f';
+    warningEl.style.marginBottom = '10px';
+    warningEl.style.fontSize = '14px';
+    warningEl.style.position = 'absolute';
+    warningEl.style.top = '40px';
+    warningEl.style.left = '15px';
+    warningEl.style.right = '15px';
+    warningEl.style.zIndex = '100';
+    
+    // Add to chart container
+    const chartContainer = document.getElementById('chart');
+    if (chartContainer) {
+      chartContainer.insertBefore(warningEl, chartContainer.firstChild);
+    }
   }
   
-  // Save the original text to restore later
-  const originalText = strategyInfoText.innerHTML;
+
+  warningEl.textContent = `Maximum ${MAX_OPTIONS_IN_CHART} options can be displayed in chart. Remove an option to add another.`;
+  warningEl.style.opacity = '1';
   
-  // Create warning message with better styling
-  strategyInfoText.innerHTML = `
-    <div style="background-color: rgba(217, 83, 79, 0.1); 
-                color: #d9534f; 
-                padding: 8px 12px; 
-                border-radius: 4px; 
-                border: 1px solid #d9534f; 
-                margin-bottom: 10px; 
-                font-size: 14px;">
-      <strong>Warning:</strong> Maximum ${MAX_OPTIONS_IN_CHART} options can be displayed in chart. 
-      Remove an option to add another.
-    </div>
-    ${originalText}
-  `;
-  
-  // Auto-dismiss after 4 seconds
   setTimeout(() => {
-    strategyInfoText.innerHTML = originalText;
+    warningEl.style.opacity = '0';
+    warningEl.style.transition = 'opacity 1s';
+    
+    setTimeout(() => {
+      if (warningEl.parentNode) {
+        warningEl.parentNode.removeChild(warningEl);
+      }
+    }, 1000);
   }, 4000);
 }
 
@@ -1551,7 +1406,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const newTab = tab.cloneNode(true);
         tab.parentNode.replaceChild(newTab, tab);
         
-        // Add new click handler
         newTab.onclick = function() {
           console.log("Tab clicked:", this.id);
           const selectedExpiration = this.id.replace('expiration-tab-', '');
@@ -1577,7 +1431,4 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 
-/*
-Get selected options table so we can see what options we have selected and what strategies we can use
-Add more dates to our options table, would make some strategies valid
-*/
+
