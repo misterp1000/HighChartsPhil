@@ -168,7 +168,6 @@ function updateOptionsGrid(expirationDate) {
       }]
     }, false);
     
-    chartComponent.chart.setTitle({ text: "Options Data" });
     chartComponent.chart.xAxis[0].setTitle({ text: "Strike Price" });
     chartComponent.chart.yAxis[0].setTitle({ text: "Value" });
     
@@ -269,30 +268,13 @@ function updateOptionInChart(strike, isCall, isLong) {
   
   //If above limit, remove highlighting etc
   if (!existingSeries && optionSeriesCount >= MAX_OPTIONS_IN_CHART) {
-    // Find the row with the matching strike value using standard DOM traversal
-    let rowElement = null;
-    const strikeElements = document.querySelectorAll('.strike-value');
-    
-    for (let i = 0; i < strikeElements.length; i++) {
-      if (parseFloat(strikeElements[i].textContent) === strike) {
-        rowElement = strikeElements[i].closest('tr');
-        break;
-      }
-    }
+    const rowElement = document.querySelector(`tr:has(.strike-value:contains("${strike}"))`);
+    const selector = isCall ? ['.call-long', '.call-short'] : ['.put-long', '.put-short'];
     
     if (rowElement) {
-      // Get the appropriate buttons based on option type
-      const buttonSelectors = isCall ? 
-        ['.call-long', '.call-short'] : 
-        ['.put-long', '.put-short'];
+      selector.forEach(sel => rowElement.querySelector(sel).style.opacity = "1");
       
-      // Reset button opacity
-      buttonSelectors.forEach(selector => {
-        const button = rowElement.querySelector(selector);
-        if (button) button.style.opacity = "1";
-      });
-      
-      // Remove options from the selected options dict
+      //Removes options from dict
       if (isCall) {
         selectedOptions.calls = selectedOptions.calls.filter(call => 
           !(call.strike === strike && call.expiration === activeExpiration));
@@ -301,13 +283,13 @@ function updateOptionInChart(strike, isCall, isLong) {
           !(put.strike === strike && put.expiration === activeExpiration));
       }
       
-      // Check if any options remain at this strike price
+      //Preserves selection for other options at strike
       const isAnyCallSelected = selectedOptions.calls.some(c => 
         c.strike === strike && c.expiration === activeExpiration);
       const isAnyPutSelected = selectedOptions.puts.some(p => 
         p.strike === strike && p.expiration === activeExpiration);
       
-      // Remove row highlighting if no options selected at this strike
+      //Remove if no selection at strike
       if (!isAnyCallSelected && !isAnyPutSelected) {
         rowElement.classList.remove('row-highlight');
       }
@@ -362,7 +344,7 @@ function updatePlotlines(strike, isCall, isLong, premium) {
        !line.label.text.includes(`${optionType} BE $`))
     )
   });
- 
+  
   // Add strike line
   chart.xAxis[0].update({
     plotLines: [...chart.xAxis[0].options.plotLines || [], {
@@ -642,23 +624,46 @@ const board = Dashboards.board("container", {
           }))
         }]
       }],
-      events: {
-        mount: function() {
-          const expirationTabs = document.querySelectorAll('.expiration-tab');
-          expirationTabs.forEach(tab => {
-            tab.addEventListener('click', function() {
-              const selectedExpiration = this.id.replace('expiration-tab-', '');
+events: {
+  mount: function() {
+    console.log("Component mount event fired");
+    
+    // Add a short delay to ensure DOM elements are rendered
+    setTimeout(() => {
+      console.log("Attaching expiration tab event listeners");
+      const expirationTabs = document.querySelectorAll('.expiration-tab');
       
-              expirationTabs.forEach(t => {
-                t.classList.toggle('active', t.id === `expiration-tab-${selectedExpiration}`);
-              });
-      
-              activeExpiration = selectedExpiration;
-              updateOptionsGrid(selectedExpiration);
+      if (expirationTabs.length > 0) {
+        console.log(`Found ${expirationTabs.length} expiration tabs`);
+        
+        expirationTabs.forEach(tab => {
+          // Clone the element to remove any existing event listeners
+          const newTab = tab.cloneNode(true);
+          if (tab.parentNode) {
+            tab.parentNode.replaceChild(newTab, tab);
+          }
+          
+          newTab.addEventListener('click', function() {
+            console.log(`Tab clicked: ${this.id}`);
+            const selectedExpiration = this.id.replace('expiration-tab-', '');
+            
+            // Update active state using classList for styling consistency
+            document.querySelectorAll('.expiration-tab').forEach(t => {
+              t.classList.toggle('active', t.id === `expiration-tab-${selectedExpiration}`);
             });
+            
+            activeExpiration = selectedExpiration;
+            updateOptionsGrid(selectedExpiration);
           });
-        }
+        });
+        
+        console.log("Tab event listeners successfully attached");
+      } else {
+        console.error("No expiration tabs found in the DOM");
       }
+    }, 100); // Short delay of 50ms should be sufficient
+  }
+}
     },
     {
       cell: "chart",
@@ -709,7 +714,7 @@ const board = Dashboards.board("container", {
         mount: function() {
           const chartContainer = document.getElementById("chart");
           chartContainer.style.position = "relative";
-          
+
           const controlsContainer = document.createElement("div");
           controlsContainer.id = "chart-controls";
           
@@ -1365,80 +1370,45 @@ function getExpirationLineStyle(expiration) {
 }
 
 function showMaxOptionsWarning() {
-  // Get the strategy info container
-  const strategyInfoContainer = document.getElementById('strategyInfoContainer');
+  let warningEl = document.getElementById('chart-max-options-warning');
   
-  if (!strategyInfoContainer) {
-    console.error('Strategy info container not found');
-    return;
-  }
-  
-  // Check if warning already exists and remove it
-  const existingWarning = document.getElementById('max-options-warning');
-  if (existingWarning) {
-    existingWarning.remove();
-  }
-  
-  // Create warning element
-  const warningEl = document.createElement('div');
-  warningEl.id = 'max-options-warning';
-  warningEl.className = 'strategy-warning';
-  warningEl.textContent = `Maximum ${MAX_OPTIONS_IN_CHART} options can be displayed in chart. Remove an option to add another.`;
-  
-  // Add the warning to the bottom of the strategy info container
-  strategyInfoContainer.appendChild(warningEl);
-  
-  // Set a timeout to remove the warning
-  setTimeout(() => {
-    if (warningEl.parentNode) {
-      warningEl.style.opacity = '0';
-      
-      setTimeout(() => {
-        if (warningEl.parentNode) {
-          warningEl.parentNode.removeChild(warningEl);
-        }
-      }, 1000);
+  if (!warningEl) {
+    warningEl = document.createElement('div');
+    warningEl.id = 'chart-max-options-warning';
+    warningEl.style.backgroundColor = 'rgba(217, 83, 79, 0.1)';
+    warningEl.style.color = '#d9534f';
+    warningEl.style.padding = '8px 12px';
+    warningEl.style.borderRadius = '4px';
+    warningEl.style.border = '1px solid #d9534f';
+    warningEl.style.marginBottom = '10px';
+    warningEl.style.fontSize = '14px';
+    warningEl.style.position = 'absolute';
+    warningEl.style.top = '40px';
+    warningEl.style.left = '15px';
+    warningEl.style.right = '15px';
+    warningEl.style.zIndex = '100';
+    
+    // Add to chart container
+    const chartContainer = document.getElementById('chart');
+    if (chartContainer) {
+      chartContainer.insertBefore(warningEl, chartContainer.firstChild);
     }
+  }
+  
+
+  warningEl.textContent = `Maximum ${MAX_OPTIONS_IN_CHART} options can be displayed in chart. Remove an option to add another.`;
+  warningEl.style.opacity = '1';
+  
+  setTimeout(() => {
+    warningEl.style.opacity = '0';
+    warningEl.style.transition = 'opacity 1s';
+    
+    setTimeout(() => {
+      if (warningEl.parentNode) {
+        warningEl.parentNode.removeChild(warningEl);
+      }
+    }, 1000);
   }, 4000);
 }
-
-
-document.addEventListener('DOMContentLoaded', function() {
-  // Wait for everything to be fully loaded and rendered
-  setTimeout(() => {
-    console.log("Fallback: Attaching expiration tab event listeners");
-    const expirationTabs = document.querySelectorAll('.expiration-tab');
-    
-    if (expirationTabs.length > 0) {
-      console.log("Found expiration tabs:", expirationTabs.length);
-      
-      expirationTabs.forEach(tab => {
-        const newTab = tab.cloneNode(true);
-        tab.parentNode.replaceChild(newTab, tab);
-        
-        newTab.onclick = function() {
-          console.log("Tab clicked:", this.id);
-          const selectedExpiration = this.id.replace('expiration-tab-', '');
-          
-          // Update active state
-          document.querySelectorAll('.expiration-tab').forEach(t => {
-            t.style.backgroundColor = (t.id === `expiration-tab-${selectedExpiration}`) ? '#007bff' : '#f8f9fa';
-            t.style.color = (t.id === `expiration-tab-${selectedExpiration}`) ? '#fff' : '#333';
-            t.style.fontWeight = (t.id === `expiration-tab-${selectedExpiration}`) ? 'bold' : 'normal';
-          });
-          
-          // Update active expiration and grid
-          activeExpiration = selectedExpiration;
-          updateOptionsGrid(selectedExpiration);
-        };
-      });
-      
-      console.log("listeners attached ");
-    } else {
-      console.error("Wrong event");
-    }
-  }, 1000);
-});
-
-
-
+ 
+//Denne er bedre fordi har ikke dom contentet loaded bullshit
