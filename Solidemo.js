@@ -912,143 +912,240 @@ const board = Dashboards.board("container", {
 //Must be fixed in the future, 
 function updateCombinedStrategy() {
   const component = board.getComponentByCellId("chart");
+  if (!component || !component.chart) {
+    console.error("Chart component not found");
+    return;
+  }
   
+  // Update chart titles
   component.chart.setTitle({ text: "Option Payoff Analysis" });
   component.chart.xAxis[0].setTitle({ text: "Stock Price at Expiration" });
   component.chart.yAxis[0].setTitle({ text: "Profit/Loss ($)" });
   
+  // Remove all existing series and plotlines
+  while (component.chart.series.length > 0) {
+    component.chart.series[0].remove(false);
+  }
+  
+  // Clear all plotlines except the basic zero line
+  component.chart.xAxis[0].update({
+    plotLines: [{
+      value: 0,
+      className: 'highcharts-break-even-line',
+      width: 1,
+      label: {
+        text: 'Break-even',
+        align: 'right'
+      }
+    }]
+  }, false);
+  
   const strategyInfoText = document.getElementById("strategyInfoText");
   
-  if (selectedOptions.calls.length > 0 || selectedOptions.puts.length > 0) {
-    // Calculate combined payoff
-    const combinedData = stockPrices.map(price => {
-      let totalPayoff = 0;
-      
-      // Add call payoffs
-      selectedOptions.calls.forEach(call => {
-        totalPayoff += calculateCallPayoff(price, call.strike, call.premium, call.isLong);
-      });
-      
-      // Add put payoffs
-      selectedOptions.puts.forEach(put => {
-        totalPayoff += calculatePutPayoff(price, put.strike, put.premium, put.isLong);
-      });
-      
-      return {
-        x: price,
-        y: totalPayoff
-      };
-    });
-    
-    const existingSeries = component.chart.series.find(s => s.name === "Combined Strategy");
-    if (existingSeries) {
-      existingSeries.remove();
-    }
-    
-    component.chart.addSeries({
-      name: "Combined Strategy",
-      data: combinedData,
-      className: 'combined-strategy-series',
-      type: 'line',
-      lineWidth: 3,
-      zIndex: 10
-    });
-    
-    const showCombinedOnly = document.getElementById('showCombinedOnly')?.checked;
-    if (showCombinedOnly) {
-      component.chart.series.forEach(series => {
-        if (series.name !== "Combined Strategy") {
-          series.setVisible(false, false);
-        }
-      });
-      component.chart.redraw();
-    }
-    
-    const breakEvenPoints = [];
-    for (let i = 1; i < combinedData.length; i++) {
-      if ((combinedData[i-1].y < 0 && combinedData[i].y >= 0) || 
-          (combinedData[i-1].y >= 0 && combinedData[i].y < 0)) {
-        const x0 = combinedData[i-1].x;
-        const x1 = combinedData[i].x;
-        const y0 = combinedData[i-1].y;
-        const y1 = combinedData[i].y;
-        const breakEven = x0 + (0 - y0) * (x1 - x0) / (y1 - y0);
-        breakEvenPoints.push(breakEven);
-      }
-    }
-    
-    breakEvenPoints.forEach((point, index) => {
-      component.chart.xAxis[0].update({
-        plotLines: [...component.chart.xAxis[0].options.plotLines || [], {
-          value: point,
-          className: 'combined-breakeven-line',
-          dashStyle: 'dot',
-          width: 2,
-          zIndex: 5,
-          label: {
-            text: `Combined BE $${point.toFixed(2)}`,
-            align: index % 2 === 0 ? 'left' : 'right'
-          }
-        }]
-      });
-    });
-    
-    const strategy = detectStrategy(selectedOptions);
-    
-    if (strategy && strategyInfoText) {
-      let strategyTypeClass = '';
-      if (strategy.outlook.toLowerCase().includes('bullish')) {
-        strategyTypeClass = 'bullish-strategy';
-      } else if (strategy.outlook.toLowerCase().includes('bearish')) {
-        strategyTypeClass = 'bearish-strategy';
-      } else {
-        strategyTypeClass = 'neutral-strategy';
-      }
-    
-      strategyInfoText.innerHTML = `
-        <div class="strategy-header">
-          <h3 style="color: #333;">${strategy.type}</h3>
-        </div>
-        <p style="color: #333;">${strategy.description}</p>
-        <div class="strategy-attribute">
-          <strong style="color: #333;">Outlook:</strong> 
-          <span class="strategy-badge ${strategyTypeClass}">
-            ${strategy.outlook.split(',')[0]}
-          </span>
-          ${strategy.outlook.includes(',') ? 
-            `<span style="color: #333;">${strategy.outlook.split(',')[1]}</span>` : ''}
-        </div>
-        <div class="strategy-attribute">
-          <strong style="color: #333;">Max Profit:</strong> 
-          <span class="max-profit">${strategy.maxProfit}</span>
-        </div>
-        <div class="strategy-attribute">
-          <strong style="color: #333;">Max Loss:</strong> 
-          <span class="max-loss">${strategy.maxLoss}</span>
-        </div>
-      `;
-    } else if (strategyInfoText) {
-      strategyInfoText.innerHTML = `
-        <p>Custom strategy with ${selectedOptions.calls.length} calls and ${selectedOptions.puts.length} puts.</p>
-        <p>No recognized pattern detected.</p>
-      `;
-    }
-    
-    // Update the selected options table
-    addSelectedOptionTable();
-  } else {
+  if (selectedOptions.calls.length === 0 && selectedOptions.puts.length === 0) {
+    // No options selected
     if (strategyInfoText) {
       strategyInfoText.textContent = "Select options to view strategy analysis";
     }
     
-    const existingSeries = component.chart.series.find(s => s.name === "Combined Strategy");
-    if (existingSeries) {
-      existingSeries.remove();
-    }
-    
     // Clear the selected options table
     addSelectedOptionTable();
+    return;
   }
+  
+  // Calculate combined payoff
+  const combinedData = stockPrices.map(price => {
+    let totalPayoff = 0;
+    
+    // Add call payoffs
+    selectedOptions.calls.forEach(call => {
+      totalPayoff += calculateCallPayoff(price, call.strike, call.premium, call.isLong);
+    });
+    
+    // Add put payoffs
+    selectedOptions.puts.forEach(put => {
+      totalPayoff += calculatePutPayoff(price, put.strike, put.premium, put.isLong);
+    });
+    
+    return {
+      x: price,
+      y: totalPayoff
+    };
+  });
+  
+  // Add combined strategy series
+  component.chart.addSeries({
+    name: "Combined Strategy",
+    data: combinedData,
+    className: 'combined-strategy-series',
+    type: 'line',
+    lineWidth: 3,
+    zIndex: 10,
+    color: '#1E90FF' // Dodger blue color for clear visibility
+  });
+  
+  // Find break-even points
+  const breakEvenPoints = [];
+  for (let i = 1; i < combinedData.length; i++) {
+    if ((combinedData[i-1].y < 0 && combinedData[i].y >= 0) || 
+        (combinedData[i-1].y >= 0 && combinedData[i].y < 0)) {
+      const x0 = combinedData[i-1].x;
+      const x1 = combinedData[i].x;
+      const y0 = combinedData[i-1].y;
+      const y1 = combinedData[i].y;
+      const breakEven = x0 + (0 - y0) * (x1 - x0) / (y1 - y0);
+      breakEvenPoints.push(breakEven);
+    }
+  }
+  
+  // Add break-even plotlines
+  breakEvenPoints.forEach((point, index) => {
+    component.chart.xAxis[0].update({
+      plotLines: [...component.chart.xAxis[0].options.plotLines || [], {
+        value: point,
+        className: 'combined-breakeven-line',
+        dashStyle: 'dot',
+        width: 2,
+        zIndex: 5,
+        label: {
+          text: `BE $${point.toFixed(2)}`,
+          align: index % 2 === 0 ? 'left' : 'right'
+        }
+      }]
+    });
+  });
+  
+  // Add significant points for strike prices
+  const allStrikes = new Set();
+  
+  selectedOptions.calls.forEach(call => allStrikes.add(call.strike));
+  selectedOptions.puts.forEach(put => allStrikes.add(put.strike));
+  
+  [...allStrikes].sort((a, b) => a - b).forEach((strike, index) => {
+    component.chart.xAxis[0].update({
+      plotLines: [...component.chart.xAxis[0].options.plotLines || [], {
+        value: strike,
+        className: 'strike-reference-line',
+        dashStyle: 'shortdash',
+        width: 1,
+        zIndex: 3,
+        label: {
+          text: `$${strike}`,
+          align: index % 2 === 0 ? 'right' : 'left',
+          y: 15 * (index % 3 + 1) // Stagger vertically
+        }
+      }]
+    });
+  });
+  
+  // Update strategy info
+  const strategy = detectStrategy(selectedOptions);
+  
+  if (strategy && strategyInfoText) {
+    let strategyTypeClass = '';
+    if (strategy.outlook.toLowerCase().includes('bullish')) {
+      strategyTypeClass = 'bullish-strategy';
+    } else if (strategy.outlook.toLowerCase().includes('bearish')) {
+      strategyTypeClass = 'bearish-strategy';
+    } else {
+      strategyTypeClass = 'neutral-strategy';
+    }
+  
+    strategyInfoText.innerHTML = `
+      <div class="strategy-header">
+        <h3 style="color: #333;">${strategy.type}</h3>
+      </div>
+      <p style="color: #333;">${strategy.description}</p>
+      <div class="strategy-attribute">
+        <strong style="color: #333;">Outlook:</strong> 
+        <span class="strategy-badge ${strategyTypeClass}">
+          ${strategy.outlook.split(',')[0]}
+        </span>
+        ${strategy.outlook.includes(',') ? 
+          `<span style="color: #333;">${strategy.outlook.split(',')[1]}</span>` : ''}
+      </div>
+      <div class="strategy-attribute">
+        <strong style="color: #333;">Max Profit:</strong> 
+        <span class="max-profit">${strategy.maxProfit}</span>
+      </div>
+      <div class="strategy-attribute">
+        <strong style="color: #333;">Max Loss:</strong> 
+        <span class="max-loss">${strategy.maxLoss}</span>
+      </div>
+    `;
+  } else if (strategyInfoText) {
+    strategyInfoText.innerHTML = `
+      <p>Custom strategy with ${selectedOptions.calls.length} calls and ${selectedOptions.puts.length} puts.</p>
+      <p>No recognized pattern detected.</p>
+    `;
+  }
+  
+
+  // Update the selected options table
+  addSelectedOptionTable();
+  
+  component.chart.redraw();
+}
+
+function addMaxProfitLossPoints(combinedData, maxProfit, maxLoss, chart) {
+  // Find point with max profit
+  const maxProfitPoint = combinedData.find(d => d.y === maxProfit);
+  if (maxProfitPoint) {
+    chart.addSeries({
+      name: "Max Profit",
+      data: [{
+        x: maxProfitPoint.x,
+        y: maxProfitPoint.y,
+        dataLabels: {
+          enabled: true,
+          format: 'Max Profit: ${y:.2f}'
+        }
+      }],
+      type: 'scatter',
+      marker: {
+        symbol: 'circle',
+        radius: 6,
+        fillColor: '#00FF00',
+        lineColor: '#006400',
+        lineWidth: 2
+      },
+      showInLegend: false
+    });
+  }
+  
+  // Find point with max loss
+  const maxLossPoint = combinedData.find(d => d.y === maxLoss);
+  if (maxLossPoint) {
+    chart.addSeries({
+      name: "Max Loss",
+      data: [{
+        x: maxLossPoint.x,
+        y: maxLossPoint.y,
+        dataLabels: {
+          enabled: true,
+          format: 'Max Loss: ${y:.2f}'
+        }
+      }],
+      type: 'scatter',
+      marker: {
+        symbol: 'circle',
+        radius: 6,
+        fillColor: '#FF0000',
+        lineColor: '#8B0000',
+        lineWidth: 2
+      },
+      showInLegend: false
+    });
+  }
+}
+
+function updateOptionInChart(strike, isCall, isLong) {
+
+  updateCombinedStrategy();
+}
+function removeOption(isCall) {
+
+  updateCombinedStrategy();
 }
             }
           }
