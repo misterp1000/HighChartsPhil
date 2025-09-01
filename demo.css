@@ -1,208 +1,65 @@
-/* Core imports and variables */
 @import url("https://code.highcharts.com/css/highcharts.css");
 @import url("https://code.highcharts.com/dashboards/css/dashboards.css");
 @import url("https://code.highcharts.com/dashboards/css/datagrid.css");
 
+* {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+    Arial, sans-serif;
+}
+
 :root {
   --call-long-color: #2e7d32;
-  --call-short-color: var(--highcharts-color-2);
+  --call-short-color: #ff9800;
   --put-long-color: #c62828;
-  --put-short-color: var(--highcharts-color-3);
+  --put-short-color: #9c27b0;
   --combined-strategy-color: #0066ff;
-  --row-highlight-color: rgba(70, 70, 70, 0.15); /* Strong grey for highlighting */
 }
 
-/* Strategy warning */
-.strategy-warning {
-  background-color: rgba(217, 83, 79, 0.1);
-  color: #d9534f;
-  padding: 12px 15px;
-  border-radius: 4px;
-  border: 1px solid #d9534f;
-  margin-top: 15px;
-  font-weight: bold;
-  text-align: center;
-  transition: opacity 1s;
-}
-
-/* Layout structure */
 #container {
   background-color: var(--highcharts-neutral-color-3);
   padding: 18px;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  font-size: 1.05rem;
+  font-size: 1rem;
 }
 
-.highcharts-dashboards-row {
-  display: flex;
-  gap: 18px;
-  margin-bottom: 18px;
-}
-
-#row-1 { min-height: 80px; flex-wrap: wrap; }
-#row-2 { min-height: 420px; }
-#row-3 { min-height: 460px; }
-
-#row-2 .highcharts-dashboards-cell:nth-child(1) { flex: 7; }
-#row-2 .highcharts-dashboards-cell:nth-child(2) { flex: 3; }
-
-/* Hide selected options panel and expand grid */
-.highcharts-dashboards-component[data-id="selectedOptions"],
-#row-3 .highcharts-dashboards-cell:nth-child(1) { display: none !important; }
-#row-3 .highcharts-dashboards-cell:nth-child(2) { flex: 1 !important; width: 100% !important; }
-
-/* Component styling */
 .highcharts-dashboards-component {
   background-color: var(--highcharts-neutral-color-0);
   border-radius: 8px;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-  height: 100%;
-  display: flex;
-  flex-direction: column;
 }
 
-/* Chart specifics */
-#chart .highcharts-dashboards-component-content {
-  padding: 0;
-  height: 100%;
-  overflow: visible;
-}
-
-#chart .highcharts-container {
-  width: 100% !important;
-  height: 100% !important;
-}
-
-/* Remove dots from chart */
-#chart .highcharts-markers {
-  display: none !important;
-}
-
-#chart .highcharts-point {
-  display: none !important;
-}
-
-/* Chart controls */
-#chart-controls {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  z-index: 100;
-  display: flex;
-  gap: 10px;
-}
-
-.chart-control-btn, .chart-control-toggle {
-  background-color: var(--highcharts-neutral-color-5);
-  border: none;
-  border-radius: 4px;
-  font-size: 0.85rem;
-  padding: 8px 14px; /* Larger padding */
-}
-
-.chart-control-toggle label {
-  display: flex;
-  align-items: center;
-  cursor: pointer;
-  font-size: 0.85rem;
-}
-
-.chart-control-toggle span {
-  margin-left: 6px;
-}
-
-/* Strategy info panel */
-#strategyInfoContainer {
-  background-color: var(--highcharts-neutral-color-3);
-  border-radius: 6px;
-  padding: 18px;
-  height: calc(100% - 36px);
-  overflow-y: auto;
-}
-
-#strategyInfoText { 
-  color: #333;
-  font-size: 1rem;
-  line-height: 1.6;
-}
-
-#strategyInfoText h3 { 
-  font-size: 1.3rem; 
-  border-bottom: 1px solid var(--highcharts-neutral-color-10);
-  padding-bottom: 8px;
-  margin-top: 0;
-  margin-bottom: 12px;
-}
-
-.max-profit { color: #2e7d32 !important; font-weight: 500; }
-.max-loss { color: #c62828 !important; font-weight: 500; }
-
-/* Strategy badges */
-.strategy-badge {
-  display: inline-block;
-  padding: 6px 10px;
-  border-radius: 4px;
-  font-size: 0.85rem;
-  margin-top: 6px;
-  font-weight: 500;
-}
-
-.bullish-strategy { background-color: rgba(0, 128, 0, 0.15); color: var(--call-long-color); }
-.bearish-strategy { background-color: rgba(255, 0, 0, 0.15); color: var(--put-long-color); }
-.neutral-strategy { background-color: rgba(128, 128, 128, 0.15); color: var(--combined-strategy-color); }
-
-/* Expiration tabs */
-#expiration-tabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding: 6px 0;
-}
-
-.expiration-tab {
-  padding: 8px 14px;
-  background-color: #f8f9fa;
-  border: none;
-  border-radius: 4px;
-  color: #333;
-  cursor: pointer;
-  font-size: 0.9rem;
-}
-
-.expiration-tab.active {
-  background-color: #007bff;
-  color: #fff;
-  font-weight: bold;
-}
-
-/* Option buttons */
 .option-btn {
   font-size: 0.8rem;
   padding: 6px 10px;
   border-radius: 3px;
   border: none;
   cursor: pointer;
+  opacity: 0.6;
   transition: all 0.2s;
 }
 
-.option-btn:hover { transform: translateY(-1px); }
-.option-btn.selected { 
+.option-btn.selected {
   opacity: 1;
   box-shadow: 0 0 0 2px #fff, 0 0 0 4px currentColor;
   font-weight: bold;
 }
-.option-btn.inactive {
-  opacity: 0.6;
-  filter: grayscale(40%);
-  transform: scale(0.95);
+
+.call-long {
+  background-color: var(--call-long-color);
+  color: white;
+}
+.call-short {
+  background-color: var(--call-short-color);
+  color: white;
+}
+.put-long {
+  background-color: var(--put-long-color);
+  color: white;
+}
+.put-short {
+  background-color: var(--put-short-color);
+  color: white;
 }
 
-.call-long { background-color: var(--call-long-color); color: white; }
-.call-short { background-color: var(--call-short-color); color: white; }
-.put-long { background-color: var(--put-long-color); color: white; }
-.put-short { background-color: var(--put-short-color); color: white; }
-
-/* Strike cell styling */
 .strike-cell {
   display: flex;
   align-items: center;
@@ -213,68 +70,71 @@
   text-align: center;
   width: 30%;
   font-weight: bold;
-  font-size: 0.95rem;
 }
 
-.call-buttons, .put-buttons {
+.call-buttons,
+.put-buttons {
   display: flex;
   flex-direction: column;
   gap: 4px;
   width: 45%;
 }
 
-/* Grid styling */
-.highcharts-datagrid-container { border: none; }
-.highcharts-datagrid-container th { 
-  background-color: var(--highcharts-neutral-color-5);
+.expiration-tab {
+  padding: 8px 14px;
+  background-color: #f8f9fa;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
   font-size: 0.9rem;
-  padding: 10px;
 }
 
-.highcharts-datagrid-cell {
-  font-size: 0.9rem;
-  padding: 8px 10px;
+.expiration-tab.active {
+  background-color: #007bff;
+  color: #fff;
+  font-weight: bold;
 }
 
-/* GREY ROW HIGHLIGHTING (changed from green) */
-tr.highcharts-datagrid-row-odd.row-highlight td,
-tr.highcharts-datagrid-row-even.row-highlight td {
-  background-color: var(--row-highlight-color) !important;
-  transition: background-color 0.15s ease-in-out;
+#chart .highcharts-markers,
+#chart .highcharts-point {
+  display: none !important;
 }
 
-/* Chart series styling - thicker lines for better visibility */
-.call-long-series .highcharts-graph { stroke: var(--call-long-color); stroke-width: 2px; }
-.call-short-series .highcharts-graph { stroke: var(--call-short-color); stroke-width: 2px; }
-.put-long-series .highcharts-graph { stroke: var(--put-long-color); stroke-width: 2px; }
-.put-short-series .highcharts-graph { stroke: var(--put-short-color); stroke-width: 2px; }
-.combined-strategy-series .highcharts-graph { stroke: var(--combined-strategy-color); stroke-width: 3px; }
+.combined-strategy-series .highcharts-graph {
+  stroke: var(--combined-strategy-color);
+  stroke-width: 3px;
+}
 
-/* Plot styling */
-.call-strike-line { stroke: var(--call-long-color); stroke-opacity: 0.4; }
-.put-strike-line { stroke: var(--put-long-color); stroke-opacity: 0.4; }
-.call-breakeven-line { stroke: var(--call-short-color); stroke-opacity: 0.4; }
-.put-breakeven-line { stroke: var(--put-short-color); stroke-opacity: 0.4; }
-.combined-breakeven-line { stroke: var(--combined-strategy-color); stroke-opacity: 0.6; stroke-width: 1.5px; }
-
-/* Area colors */
-.highcharts-area { fill: #0066ff !important; fill-opacity: 0.3; }
-.highcharts-negative { fill: #ff4444 !important; fill-opacity: 0.3; }
-.combined-strategy-series .highcharts-area, .combined-strategy-series .highcharts-negative { fill-opacity: 0.4; }
-
-/* Responsive design - mobile-first approach */
-@media (max-width: 992px) {
-  #chart-controls { position: static; margin-bottom: 10px; }
-  #row-2, #row-3 { flex-direction: column; }
+.chart-warning,
+.strategy-warning {
+  background-color: rgba(217, 83, 79, 0.1);
+  color: #d9534f;
+  padding: 8px 12px;
+  border-radius: 4px;
+  border: 1px solid #d9534f;
+  margin: 10px 0;
+  font-size: 14px;
 }
 
 @media (max-width: 768px) {
-  .strike-cell { flex-direction: column; }
-  .strike-value { width: 100%; margin: 6px 0; }
-  .call-buttons, .put-buttons { 
-    width: 100%; 
+  .strike-cell {
+    flex-direction: column;
+  }
+  .strike-value {
+    width: 100%;
+    margin: 6px 0;
+  }
+  .call-buttons,
+  .put-buttons {
+    width: 100%;
     flex-direction: row;
     justify-content: space-around;
   }
-  .call-buttons .option-btn, .put-buttons .option-btn { flex-grow: 1; margin: 3px; }
+}
+
+@media (prefers-color-scheme: dark) {
+  body {
+    background-color: #141414;
+    color: #ffffff;
+  }
 }
