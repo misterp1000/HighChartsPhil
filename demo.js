@@ -4,8 +4,7 @@ Highcharts.setOptions({
   chart: { styledMode: true },
 });
 
-// Constants
-const MAX_OPTIONS_IN_CHART = 3; // Styling handled via external CSS now (removed LINE_STYLES)
+const MAX_OPTIONS_IN_CHART = 3;
 
 const optionsChain = {
   "2025-04-18": {
@@ -756,7 +755,6 @@ const optionsChain = {
 
 const stockPrices = Array.from({ length: 41 }, (_, i) => 220 + i);
 
-// DOM Helper
 const getStrikeElements = () => document.querySelectorAll(".strike-value");
 const findRowByStrike = (strike) =>
   Array.from(getStrikeElements())
@@ -772,7 +770,6 @@ function withChart(cb) {
   if (chart) cb(chart);
 }
 
-// Button State
 function updateButtonStates(strikeCell, isCall, isLong, action) {
   const buttons = {
     longCall: strikeCell.querySelector(".call-long"),
@@ -794,7 +791,6 @@ function updateButtonStates(strikeCell, isCall, isLong, action) {
   targetBtn?.classList.add("selected");
 }
 
-// Series helper
 const createPayoffData = (strike, premium, isCall, isLong) =>
   stockPrices.map((price) => ({
     x: price,
@@ -823,7 +819,6 @@ const getOptionData = (expiration, strike, isCall) => {
 };
 
 function addChartSeries(chart, name, data, className) {
-  // Prevent duplicate series by name
   if (chart.series.find((s) => s.name === name)) return;
   chart.addSeries(
     { name, data, className, type: "line", lineWidth: 1.5 },
@@ -831,7 +826,6 @@ function addChartSeries(chart, name, data, className) {
   );
 }
 
-// Plotline helper
 const createStrikePlotline = (strike, isCall) => ({
   value: strike,
   className: isCall ? "call-strike-line" : "put-strike-line",
@@ -1019,7 +1013,6 @@ function syncPlotLines() {
       });
     });
 
-    // Build / update combined breakeven line if exists
     const combinedSeries = chart.series.find(
       (s) => s.name === "Combined Strategy"
     );
@@ -1443,8 +1436,6 @@ function detectSingleExpiryStrategy(options, expirationDate) {
   }
   return null;
 }
-
-// ...existing code...
 function addSelectedOptionTable() {
   const container = document.getElementById("selected-options-container");
   if (!container) return;
@@ -1485,8 +1476,6 @@ function addSelectedOptionTable() {
   table.appendChild(tbody);
   container.appendChild(table);
 }
-
-// Removed getExpirationLineStyle; dash styles now purely CSS-based per series class
 
 function showMaxOptionsWarning() {
   let warningEl = document.getElementById("chart-max-options-warning");
@@ -1598,29 +1587,25 @@ const board = Dashboards.board("container", {
       ],
       events: {
         mount: function () {
-
-          const tabsContainer = document.getElementById("expiration-tabs");
-          if (!tabsContainer || tabsContainer.__hasDelegatedListener) return;
-          tabsContainer.addEventListener(
-            "click",
-            (e) => {
-              const btn = e.target.closest(".expiration-tab");
-              if (!btn || !tabsContainer.contains(btn)) return;
-              const selExp = btn.id.replace("expiration-tab-", "");
-              if (selExp === activeExpiration) return; 
-              document
-                .querySelectorAll(".expiration-tab")
-                .forEach((t) => t.classList.toggle("active", t === btn));
-              activeExpiration = selExp;
-              updateOptionsGrid(selExp);
-            },
-            { passive: true }
-          );
-          Object.defineProperty(tabsContainer, "__hasDelegatedListener", {
-            value: true,
-            writable: false,
-            enumerable: false,
-          });
+          setTimeout(() => {
+            document.querySelectorAll(".expiration-tab").forEach((tab) => {
+              const newTab = tab.cloneNode(true);
+              tab.parentNode?.replaceChild(newTab, tab);
+              newTab.addEventListener("click", function () {
+                const selExp = this.id.replace("expiration-tab-", "");
+                document
+                  .querySelectorAll(".expiration-tab")
+                  .forEach((t) =>
+                    t.classList.toggle(
+                      "active",
+                      t.id === `expiration-tab-${selExp}`
+                    )
+                  );
+                activeExpiration = selExp;
+                updateOptionsGrid(selExp);
+              });
+            });
+          }, 80);
         },
       },
     },
