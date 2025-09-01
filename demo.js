@@ -1,255 +1,922 @@
 DataGrid.AST.bypassHTMLFiltering = true;
 
 Highcharts.setOptions({
-  chart: {
-    styledMode: true
-  }
+  chart: { styledMode: true },
 });
 
-// Helper definitions
-const stockPrices = Array.from({ length: 41 }, (_, i) => 220 + i); // Prices 220..260
-
-function calculateCallPayoff(price, strike, premium, isLong = true) {
-  const multiplier = isLong ? 1 : -1;
-  return multiplier * (Math.max(price - strike, 0) - premium) * 100;
-}
-
-function calculatePutPayoff(price, strike, premium, isLong = true) {
-  const multiplier = isLong ? 1 : -1;
-  return multiplier * (Math.max(strike - price, 0) - premium) * 100;
-}
+// Constants
+const MAX_OPTIONS_IN_CHART = 3;
+const LINE_STYLES = ["Solid", "ShortDash", "ShortDot", "Dash", "Dot"];
 
 const optionsChain = {
-  "2025-04-18": {
+  "2025-04-19": {
     calls: [
-      { strike: 230, bid: 3.45, ask: 3.75, last: 3.68, change: -0.04, volume: 20334, openInt: 18108, iv: 31.95, delta: 0.801 },
-      { strike: 232.5, bid: 1.68, ask: 1.78, last: 1.74, change: -0.30, volume: 68277, openInt: 11362, iv: 27.45, delta: 0.591 },
-      { strike: 235, bid: 0.58, ask: 0.59, last: 0.58, change: -0.42, volume: 81863, openInt: 23722, iv: 25.96, delta: 0.293 },
-      { strike: 237.5, bid: 0.14, ask: 0.15, last: 0.14, change: 0.30, volume: 20724, openInt: 17283, iv: 26.13, delta: 0.094 },
-      { strike: 240, bid: 0.04, ask: 0.05, last: 0.05, change: -0.13, volume: 17923, openInt: 28794, iv: 29.93, delta: 0.035 },
-      { strike: 242.5, bid: 0.02, ask: 0.03, last: 0.03, change: -0.05, volume: 4486, openInt: 13384, iv: 35.66, delta: 0.019 },
-      { strike: 245, bid: 0.01, ask: 0.02, last: 0.02, change: -0.03, volume: 3021, openInt: 9457, iv: 38.12, delta: 0.010 },
-      { strike: 247.5, bid: 0.01, ask: 0.01, last: 0.01, change: -0.01, volume: 1524, openInt: 5738, iv: 41.88, delta: 0.007 },
-      { strike: 250, bid: 0.01, ask: 0.01, last: 0.01, change: 0.00, volume: 978, openInt: 3894, iv: 45.32, delta: 0.005 },
-      { strike: 252.5, bid: 0.01, ask: 0.01, last: 0.01, change: 0.00, volume: 543, openInt: 2541, iv: 48.65, delta: 0.003 },
-      { strike: 255, bid: 0.01, ask: 0.01, last: 0.01, change: 0.00, volume: 312, openInt: 1764, iv: 50.77, delta: 0.002 }
+      {
+        strike: 230,
+        bid: 3.55,
+        ask: 3.75,
+        last: 3.68,
+        change: -0.04,
+        volume: 20334,
+        openInt: 18108,
+        iv: 31.95,
+        delta: 0.801,
+      },
+      {
+        strike: 235,
+        bid: 0.58,
+        ask: 0.59,
+        last: 0.58,
+        change: -0.42,
+        volume: 81863,
+        openInt: 23722,
+        iv: 25.96,
+        delta: 0.293,
+      },
+      {
+        strike: 240,
+        bid: 0.04,
+        ask: 0.05,
+        last: 0.05,
+        change: -0.13,
+        volume: 17923,
+        openInt: 28794,
+        iv: 29.93,
+        delta: 0.035,
+      },
     ],
     puts: [
-      { strike: 230, bid: 0.35, ask: 0.37, last: 0.36, priceChange: -0.65, volume: 48783, openInt: 10683, iv: 29.66, delta: -0.182 },
-      { strike: 232.5, bid: 0.90, ask: 0.98, last: 0.97, priceChange: -0.92, volume: 33287, openInt: 7433, iv: 26.90, delta: -0.408 },
-      { strike: 235, bid: 2.20, ask: 2.35, last: 2.25, priceChange: 1.15, volume: 5643, openInt: 5334, iv: 23.84, delta: -0.725 },
-      { strike: 237.5, bid: 4.20, ask: 4.65, last: 4.45, priceChange: -0.84, volume: 875, openInt: 5005, iv: 28.39, delta: -0.888 },
-      { strike: 240, bid: 6.55, ask: 7.00, last: 6.90, priceChange: -0.69, volume: 1064, openInt: 6115, iv: 36.75, delta: -0.931 },
-      { strike: 242.5, bid: 8.80, ask: 9.80, last: 9.45, priceChange: -1.02, volume: 1763, openInt: 1773, iv: 50.06, delta: -0.930 },
-      { strike: 245, bid: 10.50, ask: 11.80, last: 11.20, priceChange: -1.15, volume: 1423, openInt: 2104, iv: 55.18, delta: -0.925 },
-      { strike: 247.5, bid: 12.75, ask: 13.90, last: 13.50, priceChange: -1.35, volume: 1194, openInt: 1987, iv: 59.22, delta: -0.920 },
-      { strike: 250, bid: 15.30, ask: 16.45, last: 16.00, priceChange: -1.50, volume: 978, openInt: 1782, iv: 63.11, delta: -0.915 },
-      { strike: 252.5, bid: 18.10, ask: 19.25, last: 18.90, priceChange: -1.60, volume: 874, openInt: 1623, iv: 66.87, delta: -0.910 },
-      { strike: 255, bid: 21.00, ask: 22.15, last: 21.75, priceChange: -1.75, volume: 763, openInt: 1456, iv: 70.44, delta: -0.905 }
-    ]
+      {
+        strike: 230,
+        bid: 0.35,
+        ask: 0.37,
+        last: 0.36,
+        priceChange: -0.65,
+        volume: 48783,
+        openInt: 10683,
+        iv: 29.66,
+        delta: -0.182,
+      },
+      {
+        strike: 235,
+        bid: 2.2,
+        ask: 2.35,
+        last: 2.25,
+        priceChange: 1.15,
+        volume: 5643,
+        openInt: 5334,
+        iv: 23.84,
+        delta: -0.725,
+      },
+      {
+        strike: 240,
+        bid: 6.55,
+        ask: 7.0,
+        last: 6.9,
+        priceChange: -0.69,
+        volume: 1064,
+        openInt: 6115,
+        iv: 36.75,
+        delta: -0.931,
+      },
+    ],
   },
   "2025-05-16": {
     calls: [
-      { strike: 230, bid: 4.85, ask: 5.10, last: 5.00, change: -0.08, volume: 15432, openInt: 14023, iv: 28.75, delta: 0.823 },
-      { strike: 232.5, bid: 2.95, ask: 3.15, last: 3.05, change: -0.35, volume: 42168, openInt: 9876, iv: 26.15, delta: 0.653 },
-      { strike: 235, bid: 1.65, ask: 1.75, last: 1.70, change: -0.38, volume: 53421, openInt: 18543, iv: 24.35, delta: 0.462 },
-      { strike: 237.5, bid: 0.85, ask: 0.95, last: 0.90, change: -0.25, volume: 18764, openInt: 15234, iv: 23.85, delta: 0.294 },
-      { strike: 240, bid: 0.40, ask: 0.45, last: 0.42, change: -0.18, volume: 11542, openInt: 21435, iv: 24.65, delta: 0.165 },
-      { strike: 242.5, bid: 0.18, ask: 0.22, last: 0.20, change: -0.08, volume: 5327, openInt: 11245, iv: 26.25, delta: 0.089 },
-      { strike: 245, bid: 0.08, ask: 0.12, last: 0.10, change: -0.05, volume: 3215, openInt: 7654, iv: 28.35, delta: 0.045 },
-      { strike: 247.5, bid: 0.03, ask: 0.05, last: 0.04, change: -0.03, volume: 1876, openInt: 4532, iv: 30.65, delta: 0.023 },
-      { strike: 250, bid: 0.02, ask: 0.04, last: 0.03, change: -0.01, volume: 1123, openInt: 3254, iv: 33.45, delta: 0.012 },
-      { strike: 252.5, bid: 0.01, ask: 0.03, last: 0.02, change: 0.00, volume: 783, openInt: 2143, iv: 35.85, delta: 0.008 },
-      { strike: 255, bid: 0.01, ask: 0.02, last: 0.01, change: 0.00, volume: 524, openInt: 1453, iv: 37.95, delta: 0.004 }
+      {
+        strike: 230,
+        bid: 4.85,
+        ask: 5.1,
+        last: 5.0,
+        change: -0.08,
+        volume: 15432,
+        openInt: 14023,
+        iv: 28.75,
+        delta: 0.823,
+      },
+      {
+        strike: 235,
+        bid: 1.65,
+        ask: 1.75,
+        last: 1.7,
+        change: -0.38,
+        volume: 53421,
+        openInt: 18543,
+        iv: 24.35,
+        delta: 0.462,
+      },
+      {
+        strike: 240,
+        bid: 0.4,
+        ask: 0.45,
+        last: 0.42,
+        change: -0.18,
+        volume: 11542,
+        openInt: 21435,
+        iv: 24.65,
+        delta: 0.165,
+      },
     ],
     puts: [
-      { strike: 230, bid: 0.85, ask: 0.95, last: 0.90, priceChange: -0.45, volume: 32541, openInt: 8765, iv: 27.35, delta: -0.198 },
-      { strike: 232.5, bid: 1.55, ask: 1.70, last: 1.65, priceChange: -0.62, volume: 25342, openInt: 6542, iv: 25.75, delta: -0.362 },
-      { strike: 235, bid: 2.75, ask: 2.95, last: 2.85, priceChange: -0.95, volume: 7652, openInt: 4875, iv: 24.45, delta: -0.564 },
-      { strike: 237.5, bid: 4.45, ask: 4.75, last: 4.60, priceChange: -0.70, volume: 1541, openInt: 4321, iv: 25.65, delta: -0.728 },
-      { strike: 240, bid: 6.55, ask: 6.85, last: 6.70, priceChange: -0.55, volume: 1253, openInt: 5421, iv: 27.85, delta: -0.846 },
-      { strike: 242.5, bid: 9.05, ask: 9.45, last: 9.25, priceChange: -0.75, volume: 1432, openInt: 1654, iv: 32.45, delta: -0.917 },
-      { strike: 245, bid: 11.75, ask: 12.25, last: 12.00, priceChange: -0.85, volume: 1265, openInt: 1876, iv: 35.65, delta: -0.954 },
-      { strike: 247.5, bid: 14.65, ask: 15.15, last: 14.90, priceChange: -0.95, volume: 1087, openInt: 1765, iv: 38.85, delta: -0.974 },
-      { strike: 250, bid: 17.75, ask: 18.25, last: 18.00, priceChange: -1.05, volume: 876, openInt: 1564, iv: 41.75, delta: -0.986 },
-      { strike: 252.5, bid: 20.85, ask: 21.35, last: 21.10, priceChange: -1.15, volume: 768, openInt: 1432, iv: 44.45, delta: -0.992 },
-      { strike: 255, bid: 24.05, ask: 24.55, last: 24.30, priceChange: -1.25, volume: 654, openInt: 1354, iv: 46.85, delta: -0.995 }
-    ]
+      {
+        strike: 230,
+        bid: 0.85,
+        ask: 0.95,
+        last: 0.9,
+        priceChange: -0.45,
+        volume: 32541,
+        openInt: 8765,
+        iv: 27.35,
+        delta: -0.198,
+      },
+      {
+        strike: 235,
+        bid: 2.75,
+        ask: 2.95,
+        last: 2.85,
+        priceChange: -0.95,
+        volume: 7652,
+        openInt: 4875,
+        iv: 24.45,
+        delta: -0.564,
+      },
+      {
+        strike: 240,
+        bid: 6.55,
+        ask: 6.85,
+        last: 6.7,
+        priceChange: -0.55,
+        volume: 1253,
+        openInt: 5421,
+        iv: 27.85,
+        delta: -0.846,
+      },
+    ],
   },
-  "2025-06-20": {
-    calls: [
-      { strike: 230, bid: 6.15, ask: 6.45, last: 6.30, change: -0.12, volume: 10543, openInt: 12543, iv: 26.85, delta: 0.841 },
-      { strike: 232.5, bid: 4.25, ask: 4.55, last: 4.40, change: -0.25, volume: 35432, openInt: 8765, iv: 25.25, delta: 0.698 },
-      { strike: 235, bid: 2.75, ask: 2.95, last: 2.85, change: -0.30, volume: 42543, openInt: 16542, iv: 23.85, delta: 0.542 },
-      { strike: 237.5, bid: 1.65, ask: 1.85, last: 1.75, change: -0.22, volume: 15432, openInt: 13542, iv: 22.95, delta: 0.394 },
-      { strike: 240, bid: 0.95, ask: 1.10, last: 1.05, change: -0.15, volume: 9876, openInt: 19543, iv: 22.85, delta: 0.265 },
-      { strike: 242.5, bid: 0.55, ask: 0.65, last: 0.60, change: -0.10, volume: 4765, openInt: 10432, iv: 23.65, delta: 0.169 },
-      { strike: 245, bid: 0.30, ask: 0.38, last: 0.35, change: -0.07, volume: 3245, openInt: 7123, iv: 24.95, delta: 0.103 },
-      { strike: 247.5, bid: 0.15, ask: 0.22, last: 0.19, change: -0.05, volume: 1876, openInt: 4321, iv: 26.35, delta: 0.061 },
-      { strike: 250, bid: 0.08, ask: 0.13, last: 0.10, change: -0.03, volume: 1234, openInt: 3124, iv: 27.85, delta: 0.035 },
-      { strike: 252.5, bid: 0.04, ask: 0.08, last: 0.06, change: -0.02, volume: 854, openInt: 2043, iv: 29.65, delta: 0.020 },
-      { strike: 255, bid: 0.02, ask: 0.05, last: 0.04, change: -0.01, volume: 623, openInt: 1432, iv: 31.25, delta: 0.011 }
-    ],
-    puts: [
-      { strike: 230, bid: 1.35, ask: 1.50, last: 1.45, priceChange: -0.35, volume: 28765, openInt: 7654, iv: 25.85, delta: -0.185 },
-      { strike: 232.5, bid: 2.15, ask: 2.35, last: 2.25, priceChange: -0.50, volume: 21543, openInt: 6123, iv: 24.65, delta: -0.315 },
-      { strike: 235, bid: 3.25, ask: 3.45, last: 3.35, priceChange: -0.65, volume: 9876, openInt: 4567, iv: 23.75, delta: -0.470 },
-      { strike: 237.5, bid: 4.75, ask: 5.00, last: 4.90, priceChange: -0.55, volume: 2543, openInt: 4123, iv: 23.95, delta: -0.618 },
-      { strike: 240, bid: 6.65, ask: 6.95, last: 6.80, priceChange: -0.50, volume: 1876, openInt: 5123, iv: 24.85, delta: -0.747 },
-      { strike: 242.5, bid: 8.95, ask: 9.30, last: 9.15, priceChange: -0.60, volume: 1654, openInt: 1876, iv: 26.75, delta: -0.842 },
-      { strike: 245, bid: 11.65, ask: 12.05, last: 11.85, priceChange: -0.70, volume: 1432, openInt: 1765, iv: 28.75, delta: -0.903 },
-      { strike: 247.5, bid: 14.65, ask: 15.05, last: 14.85, priceChange: -0.80, volume: 1234, openInt: 1654, iv: 31.05, delta: -0.942 },
-      { strike: 250, bid: 17.85, ask: 18.25, last: 18.05, priceChange: -0.90, volume: 1087, openInt: 1432, iv: 33.45, delta: -0.966 },
-      { strike: 252.5, bid: 21.15, ask: 21.55, last: 21.35, priceChange: -1.00, volume: 954, openInt: 1324, iv: 35.75, delta: -0.981 },
-      { strike: 255, bid: 24.55, ask: 24.95, last: 24.75, priceChange: -1.10, volume: 843, openInt: 1243, iv: 37.85, delta: -0.989 }
-    ]
-  }
 };
 
+const stockPrices = Array.from({ length: 41 }, (_, i) => 220 + i);
+
+// DOM Helper
+const getStrikeElements = () => document.querySelectorAll(".strike-value");
+const findRowByStrike = (strike) =>
+  Array.from(getStrikeElements())
+    .find((el) => parseFloat(el.textContent) === strike)
+    ?.closest("tr");
+
+function getChart() {
+  const comp = board.getComponentByCellId("chart");
+  return comp && comp.chart ? comp.chart : null;
+}
+function withChart(cb) {
+  const chart = getChart();
+  if (chart) cb(chart);
+}
+
+// Button State
+function updateButtonStates(strikeCell, isCall, isLong, action) {
+  const buttons = {
+    longCall: strikeCell.querySelector(".call-long"),
+    shortCall: strikeCell.querySelector(".call-short"),
+    longPut: strikeCell.querySelector(".put-long"),
+    shortPut: strikeCell.querySelector(".put-short"),
+  };
+  Object.values(buttons).forEach((btn) =>
+    btn?.classList.remove("selected", "unselected")
+  );
+  if (action === "remove") return;
+  const targetBtn = isCall
+    ? isLong
+      ? buttons.longCall
+      : buttons.shortCall
+    : isLong
+    ? buttons.longPut
+    : buttons.shortPut;
+  targetBtn?.classList.add("selected");
+}
+
+// Series helper
+const createPayoffData = (strike, premium, isCall, isLong) =>
+  stockPrices.map((price) => ({
+    x: price,
+    y: isCall
+      ? calculateCallPayoff(price, strike, premium, isLong)
+      : calculatePutPayoff(price, strike, premium, isLong),
+  }));
+
+const getSeriesClassName = (isCall, isLong) =>
+  isCall
+    ? isLong
+      ? "call-long-series"
+      : "call-short-series"
+    : isLong
+    ? "put-long-series"
+    : "put-short-series";
+
+const getSeriesName = (strike, isCall, isLong, expiration) =>
+  `${isLong ? "Long" : "Short"} ${
+    isCall ? "Call" : "Put"
+  } ${strike} (${formatExpirationDate(expiration)})`;
+
+const getOptionData = (expiration, strike, isCall) => {
+  const side = isCall ? "calls" : "puts";
+  return optionsChain[expiration][side].find((o) => o.strike === strike);
+};
+
+function addChartSeries(chart, name, data, className, dashStyle) {
+  chart.addSeries(
+    { name, data, className, type: "line", lineWidth: 1.5, dashStyle },
+    false
+  );
+}
+
+// Plotline helper
+const createStrikePlotline = (strike, isCall) => ({
+  value: strike,
+  className: isCall ? "call-strike-line" : "put-strike-line",
+  dashStyle: "shortdash",
+  width: 1.5,
+  zIndex: 3,
+  color: isCall ? "#28a745" : "#007bff",
+  label: {
+    text: `${isCall ? "Call" : "Put"} $${strike}`,
+    align: isCall ? "left" : "right",
+    verticalAlign: "bottom",
+    y: -5,
+    style: { fontSize: "10px", fontWeight: "bold" },
+  },
+});
+
+function calculateCallPayoff(price, strike, premium, isLong = true) {
+  const m = isLong ? 1 : -1;
+  return m * (Math.max(price - strike, 0) - premium) * 100;
+}
+function calculatePutPayoff(price, strike, premium, isLong = true) {
+  const m = isLong ? 1 : -1;
+  return m * (Math.max(strike - price, 0) - premium) * 100;
+}
 
 let activeExpiration = Object.keys(optionsChain)[0];
-
-const MAX_OPTIONS_IN_CHART = 3;
+const selectedOptions = { calls: [], puts: [] };
 
 function formatExpirationDate(dateStr) {
   const date = new Date(dateStr);
-  return date.toLocaleDateString('en-US', { 
-    year: 'numeric', 
-    month: 'short', 
-    day: 'numeric' 
+  return date.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
   });
 }
 
-const selectedOptions = {
-  calls: [], // Will include {strike, premium, rowIndex, isLong, expiration}
-  puts: []  // Will include {strike, premium, rowIndex, isLong, expiration}
-};
-
-
-function updateOptionsGrid(expirationDate) {
-
-  //bugfix-stuff kan fjernes senere
-  console.log("Updating grid with expiration date:", expirationDate);
-  
-  const dateData = optionsChain[expirationDate];
-  if (!dateData) {
-    console.error("No data found for expiration date:", expirationDate);
-    return;
+function resetStateForExpiration() {
+  selectedOptions.calls = [];
+  selectedOptions.puts = [];
+  document
+    .querySelectorAll("#grid .highcharts-datagrid-tbody tr")
+    .forEach((r) => r.classList.remove("row-highlight"));
+  document
+    .querySelectorAll(".option-btn")
+    .forEach((b) => b.classList.remove("selected", "unselected"));
+  withChart((chart) => {
+    while (chart.series.length) chart.series[0].remove(false);
+    chart.xAxis[0].update({ plotLines: [] }, false);
+    chart.redraw();
+  });
+  const optionsContainer = document.getElementById(
+    "selected-options-container"
+  );
+  if (optionsContainer) {
+    optionsContainer.textContent = "";
+    const p = document.createElement("p");
+    p.textContent = "No options selected";
+    optionsContainer.appendChild(p);
   }
-  
-  const chartComponent = board.getComponentByCellId("chart");
-  if (chartComponent && chartComponent.chart) {
-    selectedOptions.calls = [];
-    selectedOptions.puts = [];
-
-    document.querySelectorAll("#grid .highcharts-datagrid-tbody tr").forEach(row => {
-    row.classList.remove('row-highlight');
-        });
-    
-    const optionsContainer = document.getElementById("selected-options-container");
-    if (optionsContainer) {
-      optionsContainer.innerHTML = "<p>No options selected</p>";
-    }
-    
-    while (chartComponent.chart.series.length > 0) {
-      chartComponent.chart.series[0].remove(false);
-    }
-    
-    chartComponent.chart.xAxis[0].update({
-      plotLines: [{
-        value: 0,
-        color: '#999',
-        width: 1,
-        label: {
-          text: 'Break-even',
-          align: 'right'
-        }
-      }]
-    }, false);
-    
-    chartComponent.chart.setTitle({ text: "Options Data" });
-    chartComponent.chart.xAxis[0].setTitle({ text: "Strike Price" });
-    chartComponent.chart.yAxis[0].setTitle({ text: "Value" });
-    
-    const strategyInfoText = document.getElementById('strategyInfoText');
-    if (strategyInfoText) {
-      strategyInfoText.textContent = "Select options to view strategy analysis";
-    }
-        
-    document.querySelectorAll(".option-btn").forEach(btn => {
-      btn.style.opacity = "1";
-    });
-
-    document.querySelectorAll("tr").forEach(row => {
-      row.classList.remove('row-highlight');
-    });
-  }
-
-  const callsData = dateData.calls;
-  const putsData = dateData.puts;
-  
-  try {
-    const chartComponent = board.getComponentByCellId("chart");
-    if (chartComponent && chartComponent.chart) {
-      chartComponent.chart.xAxis[0].update({
-        categories: optionsChain[activeExpiration].calls.map(d => d.strike)
-      }, false);
-      chartComponent.chart.redraw();
-    }
-    
-    const gridContainer = document.getElementById("grid");
-    if (!gridContainer) return;
-    
-    // Wait to ensure DOM is ready
-    setTimeout(() => {
-      const dataRows = gridContainer.querySelectorAll("tbody tr");
-      if (dataRows.length === 0) {
-        console.error("No data rows found in grid");
-        return;
-      }
-      
-      dataRows.forEach((row, rowIndex) => {
-        if (rowIndex >= callsData.length) return;
-        
-        const call = callsData[rowIndex];
-        const put = putsData[rowIndex];
-        const cells = row.querySelectorAll("td");
-        
-        if (cells.length > 0) updateCellIfNotStrike(cells[0], call.bid);
-        if (cells.length > 1) updateCellIfNotStrike(cells[1], call.ask);
-        if (cells.length > 2) updateCellIfNotStrike(cells[2], call.last);
-        if (cells.length > 3) updateCellIfNotStrike(cells[3], call.change);
-        if (cells.length > 4) updateCellIfNotStrike(cells[4], call.volume);
-        if (cells.length > 5) updateCellIfNotStrike(cells[5], call.openInt);
-        if (cells.length > 6) updateCellIfNotStrike(cells[6], call.iv);
-        if (cells.length > 7) updateCellIfNotStrike(cells[7], call.delta);
-        
-        if (cells.length > 9) updateCellIfNotStrike(cells[9], put.bid);
-        if (cells.length > 10) updateCellIfNotStrike(cells[10], put.ask);
-        if (cells.length > 11) updateCellIfNotStrike(cells[11], put.last);
-        if (cells.length > 12) updateCellIfNotStrike(cells[12], put.priceChange);
-        if (cells.length > 13) updateCellIfNotStrike(cells[13], put.volume);
-        if (cells.length > 14) updateCellIfNotStrike(cells[14], put.openInt);
-        if (cells.length > 15) updateCellIfNotStrike(cells[15], put.iv);
-        if (cells.length > 16) updateCellIfNotStrike(cells[16], put.delta);
-      });
-      
-      
-      console.log("Grid updated in-place with new data");
-    }, 50);
-  } catch (error) {
-    console.error("Error updating grid:", error);
-  }
+  const strategyInfoText = document.getElementById("strategyInfoText");
+  if (strategyInfoText)
+    strategyInfoText.textContent = "Select options to view strategy analysis";
 }
 
-function updateCellIfNotStrike(cell, value) {
-  if (cell && !cell.querySelector('.option-btn')) {
-    if (typeof value === 'number') {
-      cell.textContent = value.toFixed(2);
+function rebuildConnectorData(expirationDate) {
+  const expData = optionsChain[expirationDate];
+  if (!expData) return;
+  const newData = expData.calls.map((call, i) => {
+    const put = expData.puts[i] || {};
+    return [
+      call.strike,
+      call.bid,
+      call.ask,
+      call.last,
+      call.change,
+      call.volume,
+      call.openInt,
+      call.iv,
+      call.delta,
+      put.bid,
+      put.ask,
+      put.last,
+      put.priceChange,
+      put.volume,
+      put.openInt,
+      put.iv,
+      put.delta,
+    ];
+  });
+  board.dataPool
+    .getConnector("optionsData")
+    .then((connector) => {
+      if (!connector) return;
+      if (connector.options && connector.options.data !== undefined) {
+        connector.options.data = newData;
+      } else if ("data" in connector) {
+        connector.data = newData;
+      }
+      if (connector.load) connector.load();
+      else if (connector.reload) connector.reload();
+    })
+    .catch((e) => console.error("Connector update error:", e));
+}
+
+function updateOptionsGrid(expirationDate) {
+  if (!optionsChain[expirationDate]) {
+    console.error("No data for expiration:", expirationDate);
+    return;
+  }
+  resetStateForExpiration();
+  withChart((chart) => {
+    chart.xAxis[0].update(
+      {
+        categories: optionsChain[activeExpiration].calls.map((d) => d.strike),
+      },
+      false
+    );
+    chart.redraw();
+  });
+  rebuildConnectorData(expirationDate);
+}
+
+function enforceMaxOptionLimit(strike, isCall) {
+  let exceeded = false;
+  withChart((chart) => {
+    const currentCount = chart.series.filter(
+      (s) => s.name !== "Combined Strategy"
+    ).length;
+    if (currentCount >= MAX_OPTIONS_IN_CHART) {
+      exceeded = true;
+      const rowElement = findRowByStrike(strike);
+      const selectors = isCall
+        ? [".call-long", ".call-short"]
+        : [".put-long", ".put-short"];
+      if (rowElement) {
+        selectors.forEach((sel) =>
+          rowElement
+            .querySelector(sel)
+            ?.classList.remove("selected", "unselected")
+        );
+      }
+      const side = isCall ? "calls" : "puts";
+      selectedOptions[side] = selectedOptions[side].filter(
+        (o) => !(o.strike === strike && o.expiration === activeExpiration)
+      );
+      if (
+        !selectedOptions.calls.some(
+          (c) => c.strike === strike && c.expiration === activeExpiration
+        ) &&
+        !selectedOptions.puts.some(
+          (p) => p.strike === strike && p.expiration === activeExpiration
+        )
+      ) {
+        rowElement?.classList.remove("row-highlight");
+      }
+      showMaxOptionsWarning();
+    }
+  });
+  return exceeded;
+}
+
+function ensureOptionSeries(strike, isCall, isLong) {
+  if (enforceMaxOptionLimit(strike, isCall)) return;
+  const rowData = getOptionData(activeExpiration, strike, isCall);
+  if (!rowData) return;
+  const premium = rowData.last;
+  withChart((chart) => {
+    addChartSeries(
+      chart,
+      getSeriesName(strike, isCall, isLong, activeExpiration),
+      createPayoffData(strike, premium, isCall, isLong),
+      getSeriesClassName(isCall, isLong),
+      getExpirationLineStyle(activeExpiration)
+    );
+  });
+  syncPlotLines();
+}
+
+function syncPlotLines() {
+  withChart((chart) => {
+    const strikeLines = [];
+    const usedStrikes = new Set();
+    ["calls", "puts"].forEach((side) => {
+      selectedOptions[side].forEach((o) => {
+        const k = `${side}-${o.strike}`;
+        if (!usedStrikes.has(k)) {
+          usedStrikes.add(k);
+          strikeLines.push(createStrikePlotline(o.strike, side === "calls"));
+        }
+      });
+    });
+
+    // Build / update combined breakeven line if exists
+    const combinedSeries = chart.series.find(
+      (s) => s.name === "Combined Strategy"
+    );
+    let beLine = [];
+    if (combinedSeries) {
+      const data = combinedSeries.points.map((p) => ({ x: p.x, y: p.y }));
+      const breakEvenPoints = [];
+      for (let i = 1; i < data.length; i++) {
+        const prev = data[i - 1];
+        const cur = data[i];
+        if ((prev.y < 0 && cur.y >= 0) || (prev.y >= 0 && cur.y < 0)) {
+          const x0 = prev.x;
+          const x1 = cur.x;
+          const y0 = prev.y;
+          const y1 = cur.y;
+          const be = x0 + ((0 - y0) * (x1 - x0)) / (y1 - y0);
+          breakEvenPoints.push(be);
+        }
+      }
+      if (breakEvenPoints.length) {
+        const v =
+          breakEvenPoints.length === 1
+            ? breakEvenPoints[0]
+            : (Math.min(...breakEvenPoints) + Math.max(...breakEvenPoints)) / 2;
+        beLine.push({
+          value: v,
+          className: "combined-breakeven-line",
+          dashStyle: "solid",
+          width: 2,
+          color: "#ff6b35",
+          zIndex: 5,
+          label: {
+            text: `BE $${v.toFixed(2)}`,
+            align: "center",
+            verticalAlign: "bottom",
+            y: -5,
+            style: { fontSize: "10px", fontWeight: "bold", color: "#ff6b35" },
+          },
+        });
+      }
+    }
+    chart.xAxis[0].update({ plotLines: [...strikeLines, ...beLine] }, false);
+    chart.redraw();
+  });
+}
+
+// Combined strategy
+function buildCombinedSeries() {
+  return stockPrices.map((price) => {
+    let total = 0;
+    selectedOptions.calls.forEach((c) => {
+      total += calculateCallPayoff(price, c.strike, c.premium, c.isLong);
+    });
+    selectedOptions.puts.forEach((p) => {
+      total += calculatePutPayoff(price, p.strike, p.premium, p.isLong);
+    });
+    return { x: price, y: total };
+  });
+}
+
+function updateCombinedStrategy() {
+  const hasAny = selectedOptions.calls.length || selectedOptions.puts.length;
+  const strategyInfoText = document.getElementById("strategyInfoText");
+  withChart((chart) => {
+    const existing = chart.series.find((s) => s.name === "Combined Strategy");
+    if (existing) existing.remove(false);
+    if (hasAny) {
+      const combinedData = buildCombinedSeries();
+      addChartSeries(
+        chart,
+        "Combined Strategy",
+        combinedData,
+        "combined-strategy-series",
+        "Solid"
+      );
+      const cs = chart.series.find((s) => s.name === "Combined Strategy");
+      cs?.update({ lineWidth: 3, zIndex: 10 }, false);
+      const showCombinedOnly =
+        document.getElementById("showCombinedOnly")?.checked;
+      if (showCombinedOnly) {
+        chart.series.forEach((s) => {
+          if (s.name !== "Combined Strategy") s.setVisible(false, false);
+        });
+      }
+    }
+    chart.redraw();
+  });
+  syncPlotLines();
+  if (hasAny) {
+    const strategy = detectStrategy(selectedOptions);
+    renderStrategyInfo(strategy);
+  } else if (strategyInfoText) {
+    strategyInfoText.textContent = "Select options to view strategy analysis";
+  }
+  addSelectedOptionTable();
+}
+
+function renderStrategyInfo(strategy) {
+  const container = document.getElementById("strategyInfoText");
+  if (!container) return;
+  container.textContent = "";
+  if (!strategy) {
+    const p1 = document.createElement("p");
+    p1.textContent = `Custom strategy with ${selectedOptions.calls.length} calls and ${selectedOptions.puts.length} puts.`;
+    const p2 = document.createElement("p");
+    p2.textContent = "No recognized pattern detected.";
+    container.append(p1, p2);
+    return;
+  }
+  const header = document.createElement("div");
+  header.className = "strategy-header";
+  const h3 = document.createElement("h3");
+  h3.textContent = strategy.type;
+  header.appendChild(h3);
+
+  const description = document.createElement("p");
+  description.textContent = strategy.description;
+
+  const outlookDiv = document.createElement("div");
+  outlookDiv.className = "strategy-attribute";
+  const outlookPrimary = strategy.outlook.split(",")[0];
+  const remainder = strategy.outlook.split(",").slice(1).join(",");
+  const cls = outlookPrimary.toLowerCase().includes("bullish")
+    ? "bullish-strategy"
+    : outlookPrimary.toLowerCase().includes("bearish")
+    ? "bearish-strategy"
+    : "neutral-strategy";
+  outlookDiv.innerHTML = `<strong>Outlook:</strong> <span class="strategy-badge ${cls}">${outlookPrimary}</span>`;
+  if (remainder) {
+    const extra = document.createElement("span");
+    extra.textContent = remainder;
+    outlookDiv.appendChild(extra);
+  }
+
+  const profitDiv = document.createElement("div");
+  profitDiv.className = "strategy-attribute";
+  profitDiv.innerHTML = `<strong>Max Profit:</strong> <span class="max-profit">${strategy.maxProfit}</span>`;
+
+  const lossDiv = document.createElement("div");
+  lossDiv.className = "strategy-attribute";
+  lossDiv.innerHTML = `<strong>Max Loss:</strong> <span class="max-loss">${strategy.maxLoss}</span>`;
+
+  container.append(header, description, outlookDiv, profitDiv, lossDiv);
+}
+
+// Event delegation for option buttons
+document.addEventListener("click", (e) => {
+  const btn = e.target.closest(".option-btn");
+  if (!btn) return;
+
+  const strikeCell = btn.closest(".strike-cell");
+  const strike = parseFloat(
+    strikeCell?.querySelector(".strike-value")?.textContent
+  );
+  if (isNaN(strike)) return;
+
+  const isCall =
+    btn.classList.contains("call-long") || btn.classList.contains("call-short");
+  const isLong =
+    btn.classList.contains("call-long") || btn.classList.contains("put-long");
+  const side = isCall ? "calls" : "puts";
+
+  const existingIndex = selectedOptions[side].findIndex(
+    (o) => o.strike === strike && o.expiration === activeExpiration
+  );
+
+  let action = "add";
+  if (existingIndex >= 0) {
+    const existing = selectedOptions[side][existingIndex];
+    if (existing.isLong === isLong) {
+      selectedOptions[side].splice(existingIndex, 1);
+      action = "remove";
     } else {
-      cell.textContent = value || '0';
+      existing.isLong = isLong;
+      action = "update";
+    }
+  } else {
+    const optionData = optionsChain[activeExpiration][side].find(
+      (o) => o.strike === strike
+    );
+    if (!optionData) return;
+    selectedOptions[side].push({
+      strike,
+      premium: optionData.last,
+      isLong,
+      expiration: activeExpiration,
+      rowIndex: optionsChain[activeExpiration][side].findIndex(
+        (o) => o.strike === strike
+      ),
+    });
+  }
+
+  updateButtonStates(strikeCell, isCall, isLong, action);
+
+  const row = btn.closest("tr");
+  if (row) {
+    const highlight =
+      selectedOptions.calls.some(
+        (c) => c.strike === strike && c.expiration === activeExpiration
+      ) ||
+      selectedOptions.puts.some(
+        (p) => p.strike === strike && p.expiration === activeExpiration
+      );
+    row.classList.toggle("row-highlight", highlight);
+  }
+
+  if (action === "remove") {
+    withChart((chart) => {
+      const nameLong = getSeriesName(strike, isCall, true, activeExpiration);
+      const nameShort = getSeriesName(strike, isCall, false, activeExpiration);
+      const ser = chart.series.find(
+        (s) => s.name === nameLong || s.name === nameShort
+      );
+      if (ser) ser.remove(false);
+      chart.redraw();
+    });
+    syncPlotLines();
+  } else {
+    ensureOptionSeries(strike, isCall, isLong);
+  }
+  updateCombinedStrategy();
+});
+
+// Strategy Detection
+function createStrategy(type, description, outlook, maxProfit, maxLoss) {
+  return { type, description, outlook, maxProfit, maxLoss };
+}
+
+function detectStrategy(selectedOptions) {
+  const optionsByExpiry = {};
+  ["calls", "puts"].forEach((side) =>
+    selectedOptions[side].forEach((o) => {
+      optionsByExpiry[o.expiration] ||= { calls: [], puts: [] };
+      optionsByExpiry[o.expiration][side].push(o);
+    })
+  );
+  const expiryDates = Object.keys(optionsByExpiry).sort();
+
+  function detectCalendarOrDiagonal(sideKey) {
+    const arr = selectedOptions[sideKey];
+    if (
+      expiryDates.length < 2 ||
+      arr.length !== 2 ||
+      (sideKey === "calls"
+        ? selectedOptions.puts.length
+        : selectedOptions.calls.length)
+    )
+      return null;
+    const near = arr.find((o) => o.expiration === expiryDates[0]);
+    const far = arr.find((o) => o.expiration === expiryDates[1]);
+    if (!near || !far || near.isLong || !far.isLong) return null;
+    const label = sideKey === "calls" ? "Call" : "Put";
+    if (near.strike === far.strike) {
+      return createStrategy(
+        `Calendar ${label} Spread`,
+        `Short ${label.toLowerCase()} expiring ${formatExpirationDate(
+          near.expiration
+        )}, long ${label.toLowerCase()} expiring ${formatExpirationDate(
+          far.expiration
+        )}, strike $${near.strike}`,
+        sideKey === "calls"
+          ? "Neutral to slightly bullish"
+          : "Neutral to slightly bearish",
+        "Limited; typically near strike at near-term expiration",
+        `Limited to net debit: $${((far.premium - near.premium) * 100).toFixed(
+          2
+        )}`
+      );
+    } else {
+      return createStrategy(
+        `Diagonal ${label} Spread`,
+        `Short ${label.toLowerCase()} $${near.strike} (${formatExpirationDate(
+          near.expiration
+        )}), long ${label.toLowerCase()} $${far.strike} (${formatExpirationDate(
+          far.expiration
+        )})`,
+        sideKey === "calls" ? "Moderately bullish" : "Moderately bearish",
+        "Variable (depends on movement & decay)",
+        `Limited to net debit: $${((far.premium - near.premium) * 100).toFixed(
+          2
+        )}`
+      );
     }
   }
+
+  const calendarCall = detectCalendarOrDiagonal("calls");
+  if (calendarCall) return calendarCall;
+  const calendarPut = detectCalendarOrDiagonal("puts");
+  if (calendarPut) return calendarPut;
+
+  // Double Calendar
+  if (
+    expiryDates.length === 2 &&
+    selectedOptions.calls.length === 2 &&
+    selectedOptions.puts.length === 2
+  ) {
+    const [nearExp, farExp] = expiryDates;
+    const nearCall = selectedOptions.calls.find(
+      (c) => c.expiration === nearExp
+    );
+    const farCall = selectedOptions.calls.find((c) => c.expiration === farExp);
+    const nearPut = selectedOptions.puts.find((p) => p.expiration === nearExp);
+    const farPut = selectedOptions.puts.find((p) => p.expiration === farExp);
+    if (
+      nearCall &&
+      farCall &&
+      nearPut &&
+      farPut &&
+      !nearCall.isLong &&
+      farCall.isLong &&
+      !nearPut.isLong &&
+      farPut.isLong
+    ) {
+      const netDebit =
+        farCall.premium - nearCall.premium + (farPut.premium - nearPut.premium);
+      return createStrategy(
+        "Double Calendar Spread",
+        `Short near expiration ${formatExpirationDate(
+          nearExp
+        )}, long far expiration ${formatExpirationDate(farExp)} at strikes $${
+          nearCall.strike
+        } & $${farCall.strike}`,
+        "Neutral, low current volatility expectation",
+        "Variable (volatility & decay)",
+        `Limited to net debit: $${(netDebit * 100).toFixed(2)}`
+      );
+    }
+  }
+
+  // Single-expiry strategies
+  for (const exp of expiryDates) {
+    const res = detectSingleExpiryStrategy(optionsByExpiry[exp], exp);
+    if (res) return res;
+  }
+  return null;
+}
+
+function detectSingleExpiryStrategy(options, expirationDate) {
+  const { calls, puts } = options;
+
+  // Long/Short single leg
+  if (calls.length === 1 && puts.length === 0) {
+    const c = calls[0];
+    return c.isLong
+      ? createStrategy(
+          "Long Call",
+          `Long Call $${c.strike} (${formatExpirationDate(expirationDate)})`,
+          "Bullish",
+          "Unlimited",
+          `Premium paid: $${(c.premium * 100).toFixed(2)}`
+        )
+      : createStrategy(
+          "Short Call",
+          `Short Call $${c.strike} (${formatExpirationDate(expirationDate)})`,
+          "Bearish to neutral",
+          `Premium received: $${(c.premium * 100).toFixed(2)}`,
+          "Unlimited"
+        );
+  }
+  if (puts.length === 1 && calls.length === 0) {
+    const p = puts[0];
+    return p.isLong
+      ? createStrategy(
+          "Long Put",
+          `Long Put $${p.strike} (${formatExpirationDate(expirationDate)})`,
+          "Bearish",
+          `Strike - premium (downside): $${(
+            (p.strike - p.premium) *
+            100
+          ).toFixed(2)}`,
+          `Premium paid: $${(p.premium * 100).toFixed(2)}`
+        )
+      : createStrategy(
+          "Short Put",
+          `Short Put $${p.strike} (${formatExpirationDate(expirationDate)})`,
+          "Bullish to neutral",
+          `Premium received: $${(p.premium * 100).toFixed(2)}`,
+          `Strike - premium: $${((p.strike - p.premium) * 100).toFixed(2)}`
+        );
+  }
+
+  // Straddle / Strangle
+  if (calls.length === 1 && puts.length === 1) {
+    const [c] = calls;
+    const [p] = puts;
+    if (c.isLong && p.isLong) {
+      const tot = c.premium + p.premium;
+      if (c.strike === p.strike) {
+        return createStrategy(
+          "Long Straddle",
+          `Long Straddle $${c.strike} (${formatExpirationDate(
+            expirationDate
+          )})`,
+          "Volatility (large move)",
+          "Unlimited upside / large downside",
+          `Total premium: $${(tot * 100).toFixed(2)}`
+        );
+      }
+      return createStrategy(
+        "Long Strangle",
+        `Long Strangle Call $${c.strike} / Put $${
+          p.strike
+        } (${formatExpirationDate(expirationDate)})`,
+        "Volatility (large move)",
+        "Unlimited upside / significant downside",
+        `Total premium: $${(tot * 100).toFixed(2)}`
+      );
+    }
+  }
+
+  // Bull Call Spread
+  if (calls.length === 2 && puts.length === 0) {
+    const sorted = [...calls].sort((a, b) => a.strike - b.strike);
+    if (sorted[0].isLong && !sorted[1].isLong) {
+      const net = sorted[0].premium - sorted[1].premium;
+      const maxProfit = (sorted[1].strike - sorted[0].strike - net) * 100;
+      return createStrategy(
+        "Bull Call Spread",
+        `Long $${sorted[0].strike} / Short $${
+          sorted[1].strike
+        } (${formatExpirationDate(expirationDate)})`,
+        "Moderately bullish",
+        `$${maxProfit.toFixed(2)}`,
+        `Net debit: $${(net * 100).toFixed(2)}`
+      );
+    }
+  }
+  return null;
+}
+
+// ...existing code...
+function addSelectedOptionTable() {
+  const container = document.getElementById("selected-options-container");
+  if (!container) return;
+  container.textContent = "";
+  const all = [
+    ...selectedOptions.calls.map((o) => ({ ...o, _type: "Call" })),
+    ...selectedOptions.puts.map((o) => ({ ...o, _type: "Put" })),
+  ];
+  if (!all.length) {
+    const p = document.createElement("p");
+    p.textContent = "No options selected";
+    container.appendChild(p);
+    return;
+  }
+  const table = document.createElement("table");
+  const thead = document.createElement("thead");
+  const hr = document.createElement("tr");
+  ["Type", "Position", "Strike", "Premium", "Expiration"].forEach((h) => {
+    const th = document.createElement("th");
+    th.textContent = h;
+    hr.appendChild(th);
+  });
+  thead.appendChild(hr);
+  table.appendChild(thead);
+
+  const tbody = document.createElement("tbody");
+  all.forEach((o) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${o._type}</td>
+      <td>${o.isLong ? "Long" : "Short"}</td>
+      <td>$${o.strike}</td>
+      <td>$${o.premium.toFixed(2)}</td>
+      <td>${formatExpirationDate(o.expiration)}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+  container.appendChild(table);
+}
+
+function getExpirationLineStyle(expiration) {
+  const expirations = Object.keys(optionsChain);
+  const index = expirations.indexOf(expiration);
+  return LINE_STYLES[index % LINE_STYLES.length];
+}
+
+function showMaxOptionsWarning() {
+  let warningEl = document.getElementById("chart-max-options-warning");
+  if (!warningEl) {
+    warningEl = document.createElement("div");
+    warningEl.id = "chart-max-options-warning";
+    const chartContainer = document.getElementById("chart");
+    chartContainer?.insertBefore(warningEl, chartContainer.firstChild);
+  }
+  warningEl.textContent = `Maximum ${MAX_OPTIONS_IN_CHART} options can be displayed. Remove one to add another.`;
+  warningEl.style.opacity = "1";
+  setTimeout(() => {
+    warningEl.style.opacity = "0";
+    setTimeout(() => warningEl.parentNode?.removeChild(warningEl), 800);
+  }, 3000);
 }
 
 const board = Dashboards.board("container", {
@@ -262,23 +929,23 @@ const board = Dashboards.board("container", {
           firstRowAsNames: false,
           orientation: "rows",
           columnNames: [
-            "Strike",
-            "Calls Bid",
-            "Calls Ask",
-            "Calls Last",
-            "Calls Change",
-            "Calls Volume",
-            "Calls OpenInt",
-            "Calls IV",
-            "Calls Delta",
-            "Puts Bid",
-            "Puts Ask",
-            "Puts Last",
-            "Puts Change",
-            "Puts Volume",
-            "Puts OpenInt",
-            "Puts IV",
-            "Puts Delta"
+            "strike",
+            "calls_bid",
+            "calls_ask",
+            "calls_last",
+            "calls_change",
+            "calls_volume",
+            "calls_openint",
+            "calls_iv",
+            "calls_delta",
+            "puts_bid",
+            "puts_ask",
+            "puts_last",
+            "puts_change",
+            "puts_volume",
+            "puts_openint",
+            "puts_iv",
+            "puts_delta",
           ],
           data: optionsChain[activeExpiration].calls.map((call, index) => {
             const put = optionsChain[activeExpiration].puts[index] || {};
@@ -299,202 +966,177 @@ const board = Dashboards.board("container", {
               put.volume,
               put.openInt,
               put.iv,
-              put.delta
+              put.delta,
             ];
-          })
-        }
-      }
-    ]
+          }),
+        },
+      },
+    ],
   },
-
   gui: {
-    layouts: [{
-      rows: [{
-        id: 'row-1',
-        cells: [{
-          id: "expirationSelector"
-        }]
-      }, {
-        id: 'row-2',
-        cells: [{
-          id: "chart"
-        }, {
-          id: "strategyInfo"
-        }]
-      }, {
-        id: 'row-3',
-        cells: [{
-          id: "selectedOptions"
-        }, {
-          id: "grid"
-        }]
-      }]
-    }]
+    layouts: [
+      {
+        rows: [
+          { id: "row-1", cells: [{ id: "expirationSelector" }] },
+          { id: "row-2", cells: [{ id: "chart" }, { id: "strategyInfo" }] },
+          { id: "row-3", cells: [{ id: "selectedOptions" }, { id: "grid" }] },
+        ],
+      },
+    ],
   },
   components: [
     {
       cell: "expirationSelector",
       type: "HTML",
       title: "Select Expiration Date",
-      elements: [{
-        tagName: 'div',
-        children: [{
-          tagName: 'div',
-          attributes: {
-            id: 'expiration-tabs',
-            class: 'highcharts-dashboards-component-content'
-          },
-          children: Object.keys(optionsChain).map(expDate => ({
-            tagName: 'button',
-            textContent: formatExpirationDate(expDate),
-            attributes: {
-              id: `expiration-tab-${expDate}`,
-              class: `expiration-tab ${expDate === activeExpiration ? 'active' : ''}`
-            }
-          }))
-        }]
-      }],
+      elements: [
+        {
+          tagName: "div",
+          children: [
+            {
+              tagName: "div",
+              attributes: {
+                id: "expiration-tabs",
+                class: "highcharts-dashboards-component-content",
+              },
+              children: Object.keys(optionsChain).map((expDate, idx) => ({
+                tagName: "button",
+                textContent: formatExpirationDate(expDate),
+                attributes: {
+                  id: `expiration-tab-${expDate}`,
+                  class: `expiration-tab ${idx === 0 ? "active" : ""}`,
+                },
+              })),
+            },
+          ],
+        },
+      ],
       events: {
-        mount: function() {
-          const expirationTabs = document.querySelectorAll('.expiration-tab');
-          expirationTabs.forEach(tab => {
-            tab.addEventListener('click', function() {
-              const selectedExpiration = this.id.replace('expiration-tab-', '');
-      
-              expirationTabs.forEach(t => {
-                t.classList.toggle('active', t.id === `expiration-tab-${selectedExpiration}`);
+        mount: function () {
+          setTimeout(() => {
+            document.querySelectorAll(".expiration-tab").forEach((tab) => {
+              const newTab = tab.cloneNode(true);
+              tab.parentNode?.replaceChild(newTab, tab);
+              newTab.addEventListener("click", function () {
+                const selExp = this.id.replace("expiration-tab-", "");
+                document
+                  .querySelectorAll(".expiration-tab")
+                  .forEach((t) =>
+                    t.classList.toggle(
+                      "active",
+                      t.id === `expiration-tab-${selExp}`
+                    )
+                  );
+                activeExpiration = selExp;
+                updateOptionsGrid(selExp);
               });
-      
-              activeExpiration = selectedExpiration;
-              updateOptionsGrid(selectedExpiration);
             });
-          });
-        }
-      }
+          }, 80);
+        },
+      },
     },
     {
       cell: "chart",
       type: "Highcharts",
       title: "Options Payoff Analysis",
       chartOptions: {
-        chart: {
-          animation: false,
-          zooming: {
-            mouseWheel: false
-          }
-        },
-        title: null, 
+        chart: { animation: false, zooming: { mouseWheel: false } },
+        title: { text: "Options Payoff Analysis" },
         legend: { enabled: true },
         credits: { enabled: false },
         xAxis: {
-          categories: optionsChain[activeExpiration].calls.map(d => d.strike),
-          title: { text: "Strike Price" },
+          categories: optionsChain[activeExpiration].calls.map((d) => d.strike),
+          title: { text: "Stock Price at Expiration" },
           crosshair: true,
-          plotLines: [{
-            value: 0,
-            className: 'highcharts-break-even-line',
-            width: 1,
-            label: {
-              text: 'Break-even',
-              align: 'right'
-            }
-          }]
+          plotLines: [],
         },
-        yAxis: { 
-          title: { text: "Value" }
-        },
+        yAxis: { title: { text: "Profit/Loss ($)" } },
         tooltip: {
           shared: true,
-          formatter: function() {
+          formatter: function () {
             let s = `<b>Stock Price: $${this.x}</b>`;
-            
-            this.points.forEach(point => {
-              s += `<br/>${point.series.name}: $${Highcharts.numberFormat(point.y, 2)}`;
+            this.points.forEach((p) => {
+              s += `<br/>${p.series.name}: $${Highcharts.numberFormat(p.y, 2)}`;
             });
-            
             return s;
-          }
+          },
         },
-        series: []
+        series: [],
       },
       events: {
-        mount: function() {
+        mount: function () {
           const chartContainer = document.getElementById("chart");
-          chartContainer.style.position = "relative";
-          
           const controlsContainer = document.createElement("div");
           controlsContainer.id = "chart-controls";
-          
+
           const visibilityToggle = document.createElement("div");
           visibilityToggle.className = "chart-control-toggle";
-          visibilityToggle.innerHTML = `
-            <label>
-              <input type="checkbox" id="showCombinedOnly"> 
-              <span>Show combined only</span>
-            </label>
-          `;
-          
+          const label = document.createElement("label");
+          const checkbox = document.createElement("input");
+          checkbox.type = "checkbox";
+          checkbox.id = "showCombinedOnly";
+          const span = document.createElement("span");
+          span.textContent = "Show combined only";
+          label.append(checkbox, span);
+          visibilityToggle.appendChild(label);
+
           const resetButton = document.createElement("button");
           resetButton.textContent = "Reset Chart";
           resetButton.className = "chart-control-btn";
-          
-          resetButton.addEventListener("click", () => {
-            updateOptionsGrid(activeExpiration);
-          });
+          resetButton.addEventListener("click", () =>
+            updateOptionsGrid(activeExpiration)
+          );
 
-          controlsContainer.appendChild(visibilityToggle);
-          controlsContainer.appendChild(resetButton);
+          controlsContainer.append(visibilityToggle, resetButton);
           chartContainer.appendChild(controlsContainer);
 
-          document.getElementById('showCombinedOnly')?.addEventListener('change', function() {
-            const isChecked = this.checked;
-            const component = board.getComponentByCellId("chart");
-            if (component && component.chart) {
-              component.chart.series.forEach(series => {
-                if (series.name !== "Combined Strategy") {
-                  series.setVisible(!isChecked, false);
-                }
+          checkbox.addEventListener("change", function () {
+            withChart((chart) => {
+              chart.series.forEach((s) => {
+                if (s.name !== "Combined Strategy")
+                  s.setVisible(!this.checked, false);
               });
-              component.chart.redraw();
-            }
+              chart.redraw();
+            });
           });
-        }
-      }
+        },
+      },
     },
     {
       cell: "strategyInfo",
       type: "HTML",
       title: "Strategy Analysis",
-      elements: [{
-        tagName: 'div',
-        attributes: { 
-          id: 'strategyInfoContainer',
-          class: 'highcharts-dashboards-component-content'
-        },
-        children: [{
-          tagName: 'p',
+      elements: [
+        {
+          tagName: "div",
           attributes: {
-            id: 'strategyInfoText'
+            id: "strategyInfoContainer",
+            class: "highcharts-dashboards-component-content",
           },
-          textContent: 'Select options to view strategy analysis'
-        }]
-      }]
+          children: [
+            {
+              tagName: "p",
+              attributes: { id: "strategyInfoText" },
+              textContent: "Select options to view strategy analysis",
+            },
+          ],
+        },
+      ],
     },
     {
       cell: "selectedOptions",
       type: "HTML",
       title: "Selected Options",
-      elements: [{
-        tagName: 'div',
-        attributes: { 
-          id: 'selected-options-container',
-          class: 'highcharts-dashboards-component-content'
+      elements: [
+        {
+          tagName: "div",
+          attributes: {
+            id: "selected-options-container",
+            class: "highcharts-dashboards-component-content",
+          },
+          children: [{ tagName: "p", textContent: "No options selected" }],
         },
-        children: [{
-          tagName: 'p',
-          textContent: 'No options selected'
-        }]
-      }]
+      ],
     },
     {
       cell: "grid",
@@ -503,932 +1145,82 @@ const board = Dashboards.board("container", {
       title: "Options Chain",
       dataGridOptions: {
         editable: false,
-        contextMenu: {
-          enabled: false
-        },
-        columnHeaders: {
-          enabled: true
-        },
+        contextMenu: { enabled: false },
+        columnHeaders: { enabled: true },
         cellHeight: 35,
         header: [
-          { columnId: "Calls Bid", format: "Bid" },
-          { columnId: "Calls Ask", format: "Ask" },
-          { columnId: "Calls Last", format: "Last" },
-          { columnId: "Calls Change", format: "Change" },
-          { columnId: "Calls Volume", format: "Volume" },
-          { columnId: "Calls OpenInt", format: "Open Int" },
-          { columnId: "Calls IV", format: "IV" },
-          { columnId: "Calls Delta", format: "Delta" },
-          { columnId: "Strike", format: "Strike" },
-          { columnId: "Puts Bid", format: "Bid" },
-          { columnId: "Puts Ask", format: "Ask" },
-          { columnId: "Puts Last", format: "Last" },
-          { columnId: "Puts Change", format: "Change" },
-          { columnId: "Puts Volume", format: "Volume" },
-          { columnId: "Puts OpenInt", format: "Open Int" },
-          { columnId: "Puts IV", format: "IV" },
-          { columnId: "Puts Delta", format: "Delta" }
+          { columnId: "calls_bid", format: "Bid" },
+          { columnId: "calls_ask", format: "Ask" },
+          { columnId: "calls_last", format: "Last" },
+          { columnId: "calls_change", format: "Change" },
+          { columnId: "calls_volume", format: "Volume" },
+          { columnId: "calls_openint", format: "Open Int" },
+          { columnId: "calls_iv", format: "IV" },
+          { columnId: "calls_delta", format: "Delta" },
+          { columnId: "strike", format: "Strike" },
+          { columnId: "puts_bid", format: "Bid" },
+          { columnId: "puts_ask", format: "Ask" },
+          { columnId: "puts_last", format: "Last" },
+          { columnId: "puts_change", format: "Change" },
+          { columnId: "puts_volume", format: "Volume" },
+          { columnId: "puts_openint", format: "Open Int" },
+          { columnId: "puts_iv", format: "IV" },
+          { columnId: "puts_delta", format: "Delta" },
         ],
         columnDefaults: {
           cells: {
-            editable: false,
             formatter: function () {
-              if (this.column.id === "Strike") {
+              if (this.column.id === "strike") {
                 return `
                   <div class="strike-cell">
                     <div class="call-buttons">
-                      <button class="option-btn call-long">Long Call</button>
-                      <button class="option-btn call-short">Short Call</button>
+                      <button class="option-btn call-long" data-side="calls" data-position="long">Long Call</button>
+                      <button class="option-btn call-short" data-side="calls" data-position="short">Short Call</button>
                     </div>
                     <div class="strike-value">${this.value}</div>
                     <div class="put-buttons">
-                      <button class="option-btn put-long">Long Put</button>
-                      <button class="option-btn put-short">Short Put</button>
+                      <button class="option-btn put-long" data-side="puts" data-position="long">Long Put</button>
+                      <button class="option-btn put-short" data-side="puts" data-position="short">Short Put</button>
                     </div>
                   </div>
                 `;
               }
               return Highcharts.numberFormat(this.value, 2);
-            }
-          }
+            },
+          },
         },
         events: {
           cell: {
             afterSetValue: function () {
-              if (this.column.id !== "Strike") return;
-              
+              if (this.column.id !== "strike") return;
               const strikeValue = parseFloat(this.value);
-              const rowIndex = this.row.index;
               const cellElement = this.htmlElement;
-              
-              // Get button elements
-              const longCallBtn = cellElement.querySelector(".call-long");
-              const shortCallBtn = cellElement.querySelector(".call-short");
-              const longPutBtn = cellElement.querySelector(".put-long");
-              const shortPutBtn = cellElement.querySelector(".put-short");
-              
-              const rowElement = cellElement.closest('tr');
-
-              // Toggle active state for call buttons
-              function toggleCallActive(isLong) {
-                // Visual indication of active button
-                longCallBtn.style.opacity = isLong ? "1" : "0.6";
-                shortCallBtn.style.opacity = !isLong ? "1" : "0.6";
-
-                if (rowElement) {
-                  rowElement.classList.add('row-highlight');
-                }
-                
-                // Check if call exists already in selectedOptions
-                const existingCallIndex = selectedOptions.calls.findIndex(call => 
-                  call.strike === strikeValue && call.expiration === activeExpiration);
-                
-                if (existingCallIndex >= 0) {
-                  // Update existing call
-                  selectedOptions.calls[existingCallIndex].isLong = isLong;
-                } else {
-                  // Add new call
-                  const callData = optionsChain[activeExpiration].calls[rowIndex];
-                  selectedOptions.calls.push({
-                    strike: strikeValue,
-                    premium: callData.last,
-                    rowIndex: rowIndex,
-                    isLong: isLong,
-                    expiration: activeExpiration
-                  });
-                }
-                
-                // Update chart
-                updateOptionInChart(strikeValue, true, isLong);
-              }
-              
-              // Toggle active state for put buttons
-              function togglePutActive(isLong) {
-                longPutBtn.style.opacity = isLong ? "1" : "0.6";
-                shortPutBtn.style.opacity = !isLong ? "1" : "0.6";
-                
-                if (rowElement) {
-                  rowElement.classList.add('row-highlight');
-                }
-
-                const existingPutIndex = selectedOptions.puts.findIndex(put => 
-                  put.strike === strikeValue && put.expiration === activeExpiration);
-                
-                if (existingPutIndex >= 0) {
-                  selectedOptions.puts[existingPutIndex].isLong = isLong;
-                } else {
-                  const putData = optionsChain[activeExpiration].puts[rowIndex];
-                  selectedOptions.puts.push({
-                    strike: strikeValue,
-                    premium: putData.last,
-                    rowIndex: rowIndex,
-                    isLong: isLong,
-                    expiration: activeExpiration
-                  });
-                }
-                                
-                // Update chart
-                updateOptionInChart(strikeValue, false, isLong);
-              }
-              
-              // Remove option button click handler
-              function removeOption(isCall) {
-                if (isCall) {
-
-                  longCallBtn.style.opacity = "1";
-                  shortCallBtn.style.opacity = "1";
-                  
-                  // Remove from selected options
-                  selectedOptions.calls = selectedOptions.calls.filter(call => 
-                    !(call.strike === strikeValue && call.expiration === activeExpiration));
-                  
-                  // Remove from chart
-                  const component = board.getComponentByCellId("chart");
-                  const seriesName = `Call ${strikeValue} (${formatExpirationDate(activeExpiration)})`;
-                  const existingSeries = component.chart.series.filter(s => 
-                    s.name.includes(seriesName)
-                  );
-                  existingSeries.forEach(series => series.remove());
-                } else {
-                  longPutBtn.style.opacity = "1";
-                  shortPutBtn.style.opacity = "1";
-                  
-                  selectedOptions.puts = selectedOptions.puts.filter(put => 
-                    !(put.strike === strikeValue && put.expiration === activeExpiration));
-                  
-                  const component = board.getComponentByCellId("chart");
-                  const seriesName = `Put ${strikeValue} (${formatExpirationDate(activeExpiration)})`;
-                  const existingSeries = component.chart.series.filter(s => 
-                    s.name.includes(seriesName)
-                  );
-                  existingSeries.forEach(series => series.remove());
-                }
-                
-                // Check if any option remains for this row/expiration
-                const isAnyCallSelected = selectedOptions.calls.some(c => 
-                  c.strike === strikeValue && c.expiration === activeExpiration);
-                const isAnyPutSelected = selectedOptions.puts.some(p => 
-                  p.strike === strikeValue && p.expiration === activeExpiration);
-                
-                // Remove highlight ONLY if no options are left for this strike/expiry
-                if (rowElement && !isAnyCallSelected && !isAnyPutSelected) {
-                  rowElement.classList.remove('row-highlight');
-                }
-                
-                // Update combined strategy after removing an option
-                updateCombinedStrategy();
-              }
-              
-              // Handle Long Call button click
-              longCallBtn.addEventListener("click", function() {
-                const hasCall = selectedOptions.calls.some(call => 
-                  call.strike === strikeValue && call.expiration === activeExpiration);
-                const isCurrentlyLong = hasCall && 
-                  selectedOptions.calls.find(call => 
-                    call.strike === strikeValue && call.expiration === activeExpiration).isLong;
-                
-                if (hasCall && isCurrentlyLong) {
-                  // If clicking the same button again, remove the option
-                  removeOption(true);
-                } else {
-                  // Otherwise toggle to long call
-                  toggleCallActive(true);
-                }
-              });
-              
-              // Handle Short Call button click
-              shortCallBtn.addEventListener("click", function() {
-                const hasCall = selectedOptions.calls.some(call => 
-                  call.strike === strikeValue && call.expiration === activeExpiration);
-                const isCurrentlyShort = hasCall && 
-                  !selectedOptions.calls.find(call => 
-                    call.strike === strikeValue && call.expiration === activeExpiration).isLong;
-                
-                if (hasCall && isCurrentlyShort) {
-                  // If clicking the same button again, remove the option
-                  removeOption(true);
-                } else {
-                  // Otherwise toggle to short call
-                  toggleCallActive(false);
-                }
-              });
-              
-              // Handle Long Put button click
-              longPutBtn.addEventListener("click", function() {
-                const hasPut = selectedOptions.puts.some(put => 
-                  put.strike === strikeValue && put.expiration === activeExpiration);
-                const isCurrentlyLong = hasPut && 
-                  selectedOptions.puts.find(put => 
-                    put.strike === strikeValue && put.expiration === activeExpiration).isLong;
-                
-                if (hasPut && isCurrentlyLong) {
-                  // If clicking the same button again, remove the option
-                  removeOption(false);
-                } else {
-                  // Otherwise toggle to long put
-                  togglePutActive(true);
-                }
-              });
-              
-              // Handle Short Put button click
-              shortPutBtn.addEventListener("click", function() {
-                const hasPut = selectedOptions.puts.some(put => 
-                  put.strike === strikeValue && put.expiration === activeExpiration);
-                const isCurrentlyShort = hasPut && 
-                  !selectedOptions.puts.find(put => 
-                    put.strike === strikeValue && put.expiration === activeExpiration).isLong;
-                
-                if (hasPut && isCurrentlyShort) {
-                  // If clicking the same button again, remove the option
-                  removeOption(false);
-                } else {
-                  // Otherwise toggle to short put
-                  togglePutActive(false);
-                }
-              });
-              
-              const existingCall = selectedOptions.calls.find(call => 
-                call.strike === strikeValue && call.expiration === activeExpiration);
-              if (existingCall) {
-                longCallBtn.style.opacity = existingCall.isLong ? "1" : "0.6";
-                shortCallBtn.style.opacity = !existingCall.isLong ? "1" : "0.6";
-              }
-              
-              const existingPut = selectedOptions.puts.find(put => 
-                put.strike === strikeValue && put.expiration === activeExpiration);
-              if (existingPut) {
-                longPutBtn.style.opacity = existingPut.isLong ? "1" : "0.6";
-                shortPutBtn.style.opacity = !existingPut.isLong ? "1" : "0.6";
-              }
-          
-              function updateOptionInChart(strike, isCall, isLong) {
-                const component = board.getComponentByCellId("chart");
-                
-                // Check if this option is already in the chart
-                const optionType = isCall ? "Call" : "Put";
-                const positionType = isLong ? "Long" : "Short";
-                const expDate = formatExpirationDate(activeExpiration);
-                const seriesName = `${positionType} ${optionType} ${strike} (${expDate})`;
-                
-                const existingSeries = component.chart.series.find(s => s.name === seriesName);
-                
-                const optionSeriesCount = component.chart.series.filter(s => 
-                  s.name !== "Combined Strategy").length;
-                
-                // If this is a new option and we're at max capacity, show warning and rollback selection
-                if (!existingSeries && optionSeriesCount >= MAX_OPTIONS_IN_CHART) {
-                  console.log(`Max options limit reached (${MAX_OPTIONS_IN_CHART}), rolling back selection`);
-                  
-                  showMaxOptionsWarning();
-                  
-                  // Rollback the option selection
-                  if (isCall) {
-                    // Reset call buttons
-                    longCallBtn.style.opacity = "1";
-                    shortCallBtn.style.opacity = "1";
-                    
-                    // Remove from selected options
-                    selectedOptions.calls = selectedOptions.calls.filter(call => 
-                      !(call.strike === strike && call.expiration === activeExpiration));
-                  } else {
-                    // Reset put buttons
-                    longPutBtn.style.opacity = "1";
-                    shortPutBtn.style.opacity = "1";
-                    
-                    // Remove from selected options
-                    selectedOptions.puts = selectedOptions.puts.filter(put => 
-                      !(put.strike === strike && put.expiration === activeExpiration));
-                  }
-                  
-                  // Check if any option remains for this row/expiration
-                  const isAnyCallSelected = selectedOptions.calls.some(c => 
-                    c.strike === strike && c.expiration === activeExpiration);
-                  const isAnyPutSelected = selectedOptions.puts.some(p => 
-                    p.strike === strike && p.expiration === activeExpiration);
-                  
-                  if (rowElement && !isAnyCallSelected && !isAnyPutSelected) {
-                    rowElement.classList.remove('row-highlight');
-                  }
-                  
-                  return;
-                }
-                
-                const rowData = isCall 
-                  ? optionsChain[activeExpiration].calls.find(c => c.strike === strike) 
-                  : optionsChain[activeExpiration].puts.find(p => p.strike === strike);
-                const premium = rowData.last;
-                
-                const payoffSeries = stockPrices.map(price => ({
-                  x: price,
-                  y: isCall 
-                    ? calculateCallPayoff(price, strike, premium, isLong)
-                    : calculatePutPayoff(price, strike, premium, isLong)
-                }));
-                
-                const lineStyle = getExpirationLineStyle(activeExpiration);
-                
-                const seriesClassName = isCall 
-                  ? (isLong ? 'call-long-series' : 'call-short-series')
-                  : (isLong ? 'put-long-series' : 'put-short-series');
-                
-                component.chart.addSeries({
-                  name: seriesName,
-                  data: payoffSeries,
-                  className: seriesClassName,
-                  type: 'line',
-                  lineWidth: 1.5,
-                  dashStyle: lineStyle
-                });
-                
-                updatePlotlines(strike, isCall, isLong, premium);
-                
-                // Update the combined strategy
-                updateCombinedStrategy();
-              }
-              
-              function updatePlotlines(strike, isCall, isLong, premium) {
-                const component = board.getComponentByCellId("chart");
-                const optionType = isCall ? "Call" : "Put";
-                
-                const plotLines = component.chart.xAxis[0].options.plotLines || [];
-                component.chart.xAxis[0].update({
-                  plotLines: plotLines.filter(line => 
-                    !line.label || !line.label.text || 
-                    (!line.label.text.includes(`${optionType} Strike $${strike}`) && 
-                     !line.label.text.includes(`${optionType} BE $`))
-                  )
-                });
-                
-                component.chart.xAxis[0].update({
-                  plotLines: [...component.chart.xAxis[0].options.plotLines || [], {
-                    value: strike,
-                    className: isCall ? 'call-strike-line' : 'put-strike-line',
-                    dashStyle: 'shortdash',
-                    width: 1,
-                    zIndex: 3,
-                    label: {
-                      text: `${optionType} Strike $${strike}`,
-                      align: isCall ? 'left' : 'right'
-                    }
-                  }]
-                });
-                
-                let breakEven;
-                if (isCall) {
-                  breakEven = isLong ? (strike + premium) : (strike - premium);
-                } else {
-                  breakEven = isLong ? (strike - premium) : (strike + premium);
-                }
-                
-                component.chart.xAxis[0].update({
-                  plotLines: [...component.chart.xAxis[0].options.plotLines || [], {
-                    value: breakEven,
-                    className: isCall ? 'call-breakeven-line' : 'put-breakeven-line',
-                    dashStyle: 'dot',
-                    width: 1,
-                    zIndex: 2,
-                    label: {
-                      text: `${optionType} BE $${breakEven.toFixed(2)}`,
-                      align: isCall ? 'right' : 'left'
-                    }
-                  }]
-                });
-              }
-              
-function updateCombinedStrategy() {
-  const component = board.getComponentByCellId("chart");
-  
-  component.chart.setTitle({ text: "Option Payoff Analysis" });
-  component.chart.xAxis[0].setTitle({ text: "Stock Price at Expiration" });
-  component.chart.yAxis[0].setTitle({ text: "Profit/Loss ($)" });
-  
-  const strategyInfoText = document.getElementById("strategyInfoText");
-  
-  if (selectedOptions.calls.length > 0 || selectedOptions.puts.length > 0) {
-    // Calculate combined payoff
-    const combinedData = stockPrices.map(price => {
-      let totalPayoff = 0;
-      
-      // Add call payoffs
-      selectedOptions.calls.forEach(call => {
-        totalPayoff += calculateCallPayoff(price, call.strike, call.premium, call.isLong);
-      });
-      
-      // Add put payoffs
-      selectedOptions.puts.forEach(put => {
-        totalPayoff += calculatePutPayoff(price, put.strike, put.premium, put.isLong);
-      });
-      
-      return {
-        x: price,
-        y: totalPayoff
-      };
-    });
-    
-    const existingSeries = component.chart.series.find(s => s.name === "Combined Strategy");
-    if (existingSeries) {
-      existingSeries.remove();
-    }
-    
-    component.chart.addSeries({
-      name: "Combined Strategy",
-      data: combinedData,
-      className: 'combined-strategy-series',
-      type: 'line',
-      lineWidth: 3,
-      zIndex: 10
-    });
-    
-    const showCombinedOnly = document.getElementById('showCombinedOnly')?.checked;
-    if (showCombinedOnly) {
-      component.chart.series.forEach(series => {
-        if (series.name !== "Combined Strategy") {
-          series.setVisible(false, false);
-        }
-      });
-      component.chart.redraw();
-    }
-    
-    const breakEvenPoints = [];
-    for (let i = 1; i < combinedData.length; i++) {
-      if ((combinedData[i-1].y < 0 && combinedData[i].y >= 0) || 
-          (combinedData[i-1].y >= 0 && combinedData[i].y < 0)) {
-        const x0 = combinedData[i-1].x;
-        const x1 = combinedData[i].x;
-        const y0 = combinedData[i-1].y;
-        const y1 = combinedData[i].y;
-        const breakEven = x0 + (0 - y0) * (x1 - x0) / (y1 - y0);
-        breakEvenPoints.push(breakEven);
-      }
-    }
-    
-    breakEvenPoints.forEach((point, index) => {
-      component.chart.xAxis[0].update({
-        plotLines: [...component.chart.xAxis[0].options.plotLines || [], {
-          value: point,
-          className: 'combined-breakeven-line',
-          dashStyle: 'dot',
-          width: 2,
-          zIndex: 5,
-          label: {
-            text: `Combined BE $${point.toFixed(2)}`,
-            align: index % 2 === 0 ? 'left' : 'right'
-          }
-        }]
-      });
-    });
-    
-    const strategy = detectStrategy(selectedOptions);
-    
-    if (strategy && strategyInfoText) {
-      let strategyTypeClass = '';
-      if (strategy.outlook.toLowerCase().includes('bullish')) {
-        strategyTypeClass = 'bullish-strategy';
-      } else if (strategy.outlook.toLowerCase().includes('bearish')) {
-        strategyTypeClass = 'bearish-strategy';
-      } else {
-        strategyTypeClass = 'neutral-strategy';
-      }
-    
-      strategyInfoText.innerHTML = `
-        <div class="strategy-header">
-          <h3 style="color: #333;">${strategy.type}</h3>
-        </div>
-        <p style="color: #333;">${strategy.description}</p>
-        <div class="strategy-attribute">
-          <strong style="color: #333;">Outlook:</strong> 
-          <span class="strategy-badge ${strategyTypeClass}">
-            ${strategy.outlook.split(',')[0]}
-          </span>
-          ${strategy.outlook.includes(',') ? 
-            `<span style="color: #333;">${strategy.outlook.split(',')[1]}</span>` : ''}
-        </div>
-        <div class="strategy-attribute">
-          <strong style="color: #333;">Max Profit:</strong> 
-          <span class="max-profit">${strategy.maxProfit}</span>
-        </div>
-        <div class="strategy-attribute">
-          <strong style="color: #333;">Max Loss:</strong> 
-          <span class="max-loss">${strategy.maxLoss}</span>
-        </div>
-      `;
-    } else if (strategyInfoText) {
-      strategyInfoText.innerHTML = `
-        <p>Custom strategy with ${selectedOptions.calls.length} calls and ${selectedOptions.puts.length} puts.</p>
-        <p>No recognized pattern detected.</p>
-      `;
-    }
-    
-    // Update the selected options table
-    addSelectedOptionTable();
-  } else {
-    if (strategyInfoText) {
-      strategyInfoText.textContent = "Select options to view strategy analysis";
-    }
-    
-    const existingSeries = component.chart.series.find(s => s.name === "Combined Strategy");
-    if (existingSeries) {
-      existingSeries.remove();
-    }
-    
-    // Clear the selected options table
-    addSelectedOptionTable();
-  }
-}
-            }
-          }
-        }
-      }
-    }
-  ]
+              const existingCall = selectedOptions.calls.find(
+                (c) =>
+                  c.strike === strikeValue && c.expiration === activeExpiration
+              );
+              if (existingCall)
+                updateButtonStates(
+                  cellElement,
+                  true,
+                  existingCall.isLong,
+                  "update"
+                );
+              const existingPut = selectedOptions.puts.find(
+                (p) =>
+                  p.strike === strikeValue && p.expiration === activeExpiration
+              );
+              if (existingPut)
+                updateButtonStates(
+                  cellElement,
+                  false,
+                  existingPut.isLong,
+                  "update"
+                );
+            },
+          },
+        },
+      },
+    },
+  ],
 });
-
-
-function detectStrategy(selectedOptions) {
-  //Using a dict option exp dates
-  const optionsByExpiry = {};
-  
-  // Organize selected options by expiration date
-  selectedOptions.calls.forEach(call => {
-    if (!optionsByExpiry[call.expiration]) {
-      optionsByExpiry[call.expiration] = { calls: [], puts: [] };
-    }
-    optionsByExpiry[call.expiration].calls.push(call);
-  });
-  
-  selectedOptions.puts.forEach(put => {
-    if (!optionsByExpiry[put.expiration]) {
-      optionsByExpiry[put.expiration] = { calls: [], puts: [] };
-    }
-    optionsByExpiry[put.expiration].puts.push(put);
-  });
-  
-  // Check for multi-expiry strategies
-  const expiryDates = Object.keys(optionsByExpiry);
-  
-  // Calendar Call Spread
-  if (expiryDates.length > 1 && selectedOptions.calls.length === 2 && selectedOptions.puts.length === 0) {
-    const sortedDates = expiryDates.sort();
-    const nearCall = selectedOptions.calls.find(call => call.expiration === sortedDates[0]);
-    const farCall = selectedOptions.calls.find(call => call.expiration === sortedDates[1]);
-    
-    if (nearCall && farCall && !nearCall.isLong && farCall.isLong && nearCall.strike === farCall.strike) {
-      return {
-        type: "Calendar Call Spread",
-        description: `Short call expiring ${formatExpirationDate(nearCall.expiration)}, 
-                     long call expiring ${formatExpirationDate(farCall.expiration)}, 
-                     both at strike $${nearCall.strike}`,
-        outlook: "Neutral to slightly bullish, expecting time decay and low volatility",
-        maxProfit: "Limited; typically at near strike price near expiration",
-        maxLoss: `Limited to net debit paid: $${((farCall.premium - nearCall.premium) * 100).toFixed(2)}`
-      };
-    }
-  }
-  
-  // Calendar Put Spread
-  if (expiryDates.length > 1 && selectedOptions.puts.length === 2 && selectedOptions.calls.length === 0) {
-    const sortedDates = expiryDates.sort();
-    const nearPut = selectedOptions.puts.find(put => put.expiration === sortedDates[0]);
-    const farPut = selectedOptions.puts.find(put => put.expiration === sortedDates[1]);
-    
-    if (nearPut && farPut && !nearPut.isLong && farPut.isLong && nearPut.strike === farPut.strike) {
-      return {
-        type: "Calendar Put Spread",
-        description: `Short put expiring ${formatExpirationDate(nearPut.expiration)}, 
-                     long put expiring ${formatExpirationDate(farPut.expiration)}, 
-                     both at strike $${nearPut.strike}`,
-        outlook: "Neutral to slightly bearish, expecting time decay and low volatility",
-        maxProfit: "Limited; typically at near strike price near expiration",
-        maxLoss: `Limited to net debit paid: $${((farPut.premium - nearPut.premium) * 100).toFixed(2)}`
-      };
-    }
-  }
-  
-  // Diagonal Call Spread
-  if (expiryDates.length > 1 && selectedOptions.calls.length === 2 && selectedOptions.puts.length === 0) {
-    const sortedDates = expiryDates.sort();
-    const nearCall = selectedOptions.calls.find(call => call.expiration === sortedDates[0]);
-    const farCall = selectedOptions.calls.find(call => call.expiration === sortedDates[1]);
-    
-    if (nearCall && farCall && !nearCall.isLong && farCall.isLong && nearCall.strike !== farCall.strike) {
-      return {
-        type: "Diagonal Call Spread",
-        description: `Short call at strike $${nearCall.strike} expiring ${formatExpirationDate(nearCall.expiration)}, 
-                     long call at strike $${farCall.strike} expiring ${formatExpirationDate(farCall.expiration)}`,
-        outlook: "Moderately bullish with time decay advantage",
-        maxProfit: "Variable depending on stock movement and time decay",
-        maxLoss: `Limited to net debit paid: $${((farCall.premium - nearCall.premium) * 100).toFixed(2)}`
-      };
-    }
-  }
-
-  // Double Calendar Spread
-  if (expiryDates.length === 2 && 
-      selectedOptions.calls.length === 2 && 
-      selectedOptions.puts.length === 2) {
-    
-    const sortedDates = expiryDates.sort();
-    const nearCall = selectedOptions.calls.find(call => call.expiration === sortedDates[0]);
-    const farCall = selectedOptions.calls.find(call => call.expiration === sortedDates[1]);
-    const nearPut = selectedOptions.puts.find(put => put.expiration === sortedDates[0]);
-    const farPut = selectedOptions.puts.find(put => put.expiration === sortedDates[1]);
-    
-    if (nearCall && farCall && nearPut && farPut && 
-        !nearCall.isLong && farCall.isLong && 
-        !nearPut.isLong && farPut.isLong &&
-        nearCall.strike === nearPut.strike &&
-        farCall.strike === farPut.strike) {
-      
-      const netDebit = (farCall.premium - nearCall.premium) + (farPut.premium - nearPut.premium);
-      
-      return {
-        type: "Double Calendar Spread",
-        description: `Short options expiring ${formatExpirationDate(sortedDates[0])}, 
-                     long options expiring ${formatExpirationDate(sortedDates[1])},
-                     at strikes $${nearCall.strike} and $${farCall.strike}`,
-        outlook: "Neutral, expecting low volatility now and higher volatility later",
-        maxProfit: "Variable based on volatility changes and time decay",
-        maxLoss: `Limited to net debit paid: $${(netDebit * 100).toFixed(2)}`
-      };
-    }
-  }
-  
-  // Check for single-expiry strategies within each expiration date
-  for (const expiry in optionsByExpiry) {
-    const options = optionsByExpiry[expiry];
-    const result = detectSingleExpiryStrategy(options, expiry);
-    if (result) return result;
-  }
-  
-  return null;
-}
-
-// Option detection for single expiry
-function detectSingleExpiryStrategy(options, expirationDate) {
-  const { calls, puts } = options;
-  
-  // Long/Short Call
-  if (calls.length === 1 && puts.length === 0) {
-    const call = calls[0];
-    if (call.isLong) {
-      return {
-        type: "Long Call",
-        description: `Long Call with strike price $${call.strike}, expiring ${formatExpirationDate(expirationDate)}`,
-        outlook: "Bullish. Profit when stock price rises significantly above strike price.",
-        maxProfit: "Unlimited (as stock price increases)",
-        maxLoss: `Limited to premium paid: $${(call.premium * 100).toFixed(2)}`
-      };
-    } else {
-      return {
-        type: "Short Call",
-        description: `Short Call with strike price $${call.strike}, expiring ${formatExpirationDate(expirationDate)}`,
-        outlook: "Bearish to neutral. Profit when stock stays below strike price.",
-        maxProfit: `Limited to premium received: $${(call.premium * 100).toFixed(2)}`,
-        maxLoss: "Unlimited (as stock price increases)"
-      };
-    }
-  }
-  
-  // Long/Short Put
-  if (puts.length === 1 && calls.length === 0) {
-    const put = puts[0];
-    if (put.isLong) {
-      return {
-        type: "Long Put",
-        description: `Long Put with strike price $${put.strike}, expiring ${formatExpirationDate(expirationDate)}`,
-        outlook: "Bearish. Profit when stock price falls significantly below strike price.",
-        maxProfit: `Limited to strike price minus premium: $${((put.strike - put.premium) * 100).toFixed(2)}`,
-        maxLoss: `Limited to premium paid: $${(put.premium * 100).toFixed(2)}`
-      };
-    } else {
-      return {
-        type: "Short Put",
-        description: `Short Put with strike price $${put.strike}, expiring ${formatExpirationDate(expirationDate)}`,
-        outlook: "Bullish to neutral. Profit when stock stays above strike price.",
-        maxProfit: `Limited to premium received: $${(put.premium * 100).toFixed(2)}`,
-        maxLoss: `Limited to strike price minus premium: $${((put.strike - put.premium) * 100).toFixed(2)}`
-      };
-    }
-  }
-  
-  // Straddle and Strangle
-  if (calls.length === 1 && puts.length === 1) {
-    const call = calls[0];
-    const put = puts[0];
-    
-    if (call.isLong && put.isLong) {
-      if (call.strike === put.strike) {
-        const totalPremium = call.premium + put.premium;
-        return {
-          type: "Long Straddle",
-          description: `Long Straddle with both options at strike price $${call.strike}, expiring ${formatExpirationDate(expirationDate)}`,
-          outlook: "Expecting significant price movement in either direction.",
-          maxProfit: "Unlimited to the upside, limited to strike price minus premium to the downside",
-          maxLoss: `Limited to total premium paid: $${(totalPremium * 100).toFixed(2)}`
-        };
-      } else {
-        const totalPremium = call.premium + put.premium;
-        const lowerStrike = Math.min(call.strike, put.strike);
-        const higherStrike = Math.max(call.strike, put.strike);
-        return {
-          type: "Long Strangle",
-          description: `Long Strangle with call at $${call.strike} and put at $${put.strike}, expiring ${formatExpirationDate(expirationDate)}`,
-          outlook: "Expecting significant price movement in either direction.",
-          maxProfit: "Unlimited to the upside, limited to lower strike minus premium to the downside",
-          maxLoss: `Limited to total premium paid: $${(totalPremium * 100).toFixed(2)}`
-        };
-      }
-    }
-    
-  }
-  
-  // Bull Spread using Calls
-  if (calls.length === 2 && puts.length === 0) {
-    const sortedCalls = [...calls].sort((a, b) => a.strike - b.strike);
-    if (sortedCalls[0].isLong && !sortedCalls[1].isLong) {
-      const netPremium = sortedCalls[0].premium - sortedCalls[1].premium;
-      const maxProfit = (sortedCalls[1].strike - sortedCalls[0].strike - netPremium) * 100;
-      return {
-        type: "Bull Call Spread",
-        description: `Bull Call Spread with long call at $${sortedCalls[0].strike} and short call at $${sortedCalls[1].strike}, expiring ${formatExpirationDate(expirationDate)}`,
-        outlook: "Moderately bullish. Profit when stock rises above the lower strike.",
-        maxProfit: `Limited to the difference in strikes minus net premium: $${maxProfit.toFixed(2)}`,
-        maxLoss: `Limited to net premium paid: $${(netPremium * 100).toFixed(2)}`
-      };
-    }
-  }
-  
-  
-  return null;
-}
-
-function addSelectedOptionTable() {
-  const container = document.getElementById("selected-options-container");
-  if (!container) {
-    console.error("Container not found: selected-options-container");
-    return;
-  }
-  
-  container.innerHTML = "";
-  
-  if (selectedOptions.calls.length === 0 && selectedOptions.puts.length === 0) {
-    container.innerHTML = "<p>No options selected</p>";
-    return;
-  }
-  
-  const table = document.createElement("table");
-  
-  const thead = document.createElement("thead");
-  const headerRow = document.createElement("tr");
-  
-  ["Type", "Position", "Strike", "Premium", "Expiration"].forEach(text => {
-    const th = document.createElement("th");
-    th.textContent = text;
-    headerRow.appendChild(th);
-  });
-  
-  thead.appendChild(headerRow);
-  table.appendChild(thead);
-  
-  const tbody = document.createElement("tbody");
-  
-  //Calls
-  selectedOptions.calls.forEach(call => {
-    const tr = document.createElement("tr");
-    
-    const tdType = document.createElement("td");
-    tdType.textContent = "Call";
-    
-    const tdPosition = document.createElement("td");
-    tdPosition.textContent = call.isLong ? 'Long' : 'Short';
-    
-    const tdStrike = document.createElement("td");
-    tdStrike.textContent = `$${call.strike}`;
-    
-    const tdPremium = document.createElement("td");
-    tdPremium.textContent = `$${call.premium.toFixed(2)}`;
-    
-    const tdExpiration = document.createElement("td");
-    tdExpiration.textContent = formatExpirationDate(call.expiration);
-    
-    tr.append(tdType, tdPosition, tdStrike, tdPremium, tdExpiration);
-    tbody.appendChild(tr);
-  });
-  
-  //Puts
-  selectedOptions.puts.forEach(put => {
-    const tr = document.createElement("tr");
-    
-    const tdType = document.createElement("td");
-    tdType.textContent = "Put";
-    
-    const tdPosition = document.createElement("td");
-    tdPosition.textContent = put.isLong ? 'Long' : 'Short';
-    
-    const tdStrike = document.createElement("td");
-    tdStrike.textContent = `$${put.strike}`;
-    
-    const tdPremium = document.createElement("td");
-    tdPremium.textContent = `$${put.premium.toFixed(2)}`;
-    
-    const tdExpiration = document.createElement("td");
-    tdExpiration.textContent = formatExpirationDate(put.expiration);
-    
-    tr.append(tdType, tdPosition, tdStrike, tdPremium, tdExpiration);
-    tbody.appendChild(tr);
-  });
-  
-  table.appendChild(tbody);
-  container.appendChild(table);
-}
-
-function getExpirationLineStyle(expiration) {
-  const expirations = Object.keys(optionsChain);
-  const index = expirations.indexOf(expiration);
-  const styles = ['Solid', 'ShortDash', 'ShortDot', 'Dash', 'Dot'];
-  return styles[index % styles.length];
-}
-
-function showMaxOptionsWarning() {
-  let warningEl = document.getElementById('chart-max-options-warning');
-  
-  if (!warningEl) {
-    warningEl = document.createElement('div');
-    warningEl.id = 'chart-max-options-warning';
-    warningEl.style.backgroundColor = 'rgba(217, 83, 79, 0.1)';
-    warningEl.style.color = '#d9534f';
-    warningEl.style.padding = '8px 12px';
-    warningEl.style.borderRadius = '4px';
-    warningEl.style.border = '1px solid #d9534f';
-    warningEl.style.marginBottom = '10px';
-    warningEl.style.fontSize = '14px';
-    warningEl.style.position = 'absolute';
-    warningEl.style.top = '40px';
-    warningEl.style.left = '15px';
-    warningEl.style.right = '15px';
-    warningEl.style.zIndex = '100';
-    
-    // Add to chart container
-    const chartContainer = document.getElementById('chart');
-    if (chartContainer) {
-      chartContainer.insertBefore(warningEl, chartContainer.firstChild);
-    }
-  }
-  
-
-  warningEl.textContent = `Maximum ${MAX_OPTIONS_IN_CHART} options can be displayed in chart. Remove an option to add another.`;
-  warningEl.style.opacity = '1';
-  
-  setTimeout(() => {
-    warningEl.style.opacity = '0';
-    warningEl.style.transition = 'opacity 1s';
-    
-    setTimeout(() => {
-      if (warningEl.parentNode) {
-        warningEl.parentNode.removeChild(warningEl);
-      }
-    }, 1000);
-  }, 4000);
-}
-
-// Add this function at the end of your file to ensure event binding
-document.addEventListener('DOMContentLoaded', function() {
-  // Wait for everything to be fully loaded and rendered
-  setTimeout(() => {
-    console.log("Fallback: Attaching expiration tab event listeners");
-    const expirationTabs = document.querySelectorAll('.expiration-tab');
-    
-    if (expirationTabs.length > 0) {
-      console.log("Found expiration tabs:", expirationTabs.length);
-      
-      expirationTabs.forEach(tab => {
-        // Remove existing handlers first to avoid duplicates
-        const newTab = tab.cloneNode(true);
-        tab.parentNode.replaceChild(newTab, tab);
-        
-        newTab.onclick = function() {
-          console.log("Tab clicked:", this.id);
-          const selectedExpiration = this.id.replace('expiration-tab-', '');
-          
-          // Update active state
-          document.querySelectorAll('.expiration-tab').forEach(t => {
-            t.style.backgroundColor = (t.id === `expiration-tab-${selectedExpiration}`) ? '#007bff' : '#f8f9fa';
-            t.style.color = (t.id === `expiration-tab-${selectedExpiration}`) ? '#fff' : '#333';
-            t.style.fontWeight = (t.id === `expiration-tab-${selectedExpiration}`) ? 'bold' : 'normal';
-          });
-          
-          // Update active expiration and grid
-          activeExpiration = selectedExpiration;
-          updateOptionsGrid(selectedExpiration);
-        };
-      });
-      
-      console.log("listeners attached ");
-    } else {
-      console.error("Feil event");
-    }
-  }, 1000);
-});
-
-
-
