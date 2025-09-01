@@ -5,15 +5,14 @@ Highcharts.setOptions({
 });
 
 // Constants
-const MAX_OPTIONS_IN_CHART = 3;
-const LINE_STYLES = ["Solid", "ShortDash", "ShortDot", "Dash", "Dot"];
+const MAX_OPTIONS_IN_CHART = 3; // Styling handled via external CSS now (removed LINE_STYLES)
 
 const optionsChain = {
-  "2025-04-19": {
+  "2025-04-18": {
     calls: [
       {
         strike: 230,
-        bid: 3.55,
+        bid: 3.45,
         ask: 3.75,
         last: 3.68,
         change: -0.04,
@@ -21,6 +20,17 @@ const optionsChain = {
         openInt: 18108,
         iv: 31.95,
         delta: 0.801,
+      },
+      {
+        strike: 232.5,
+        bid: 1.68,
+        ask: 1.78,
+        last: 1.74,
+        change: -0.3,
+        volume: 68277,
+        openInt: 11362,
+        iv: 27.45,
+        delta: 0.591,
       },
       {
         strike: 235,
@@ -34,6 +44,17 @@ const optionsChain = {
         delta: 0.293,
       },
       {
+        strike: 237.5,
+        bid: 0.14,
+        ask: 0.15,
+        last: 0.14,
+        change: 0.3,
+        volume: 20724,
+        openInt: 17283,
+        iv: 26.13,
+        delta: 0.094,
+      },
+      {
         strike: 240,
         bid: 0.04,
         ask: 0.05,
@@ -43,6 +64,72 @@ const optionsChain = {
         openInt: 28794,
         iv: 29.93,
         delta: 0.035,
+      },
+      {
+        strike: 242.5,
+        bid: 0.02,
+        ask: 0.03,
+        last: 0.03,
+        change: -0.05,
+        volume: 4486,
+        openInt: 13384,
+        iv: 35.66,
+        delta: 0.019,
+      },
+      {
+        strike: 245,
+        bid: 0.01,
+        ask: 0.02,
+        last: 0.02,
+        change: -0.03,
+        volume: 3021,
+        openInt: 9457,
+        iv: 38.12,
+        delta: 0.01,
+      },
+      {
+        strike: 247.5,
+        bid: 0.01,
+        ask: 0.01,
+        last: 0.01,
+        change: -0.01,
+        volume: 1524,
+        openInt: 5738,
+        iv: 41.88,
+        delta: 0.007,
+      },
+      {
+        strike: 250,
+        bid: 0.01,
+        ask: 0.01,
+        last: 0.01,
+        change: 0.0,
+        volume: 978,
+        openInt: 3894,
+        iv: 45.32,
+        delta: 0.005,
+      },
+      {
+        strike: 252.5,
+        bid: 0.01,
+        ask: 0.01,
+        last: 0.01,
+        change: 0.0,
+        volume: 543,
+        openInt: 2541,
+        iv: 48.65,
+        delta: 0.003,
+      },
+      {
+        strike: 255,
+        bid: 0.01,
+        ask: 0.01,
+        last: 0.01,
+        change: 0.0,
+        volume: 312,
+        openInt: 1764,
+        iv: 50.77,
+        delta: 0.002,
       },
     ],
     puts: [
@@ -58,6 +145,17 @@ const optionsChain = {
         delta: -0.182,
       },
       {
+        strike: 232.5,
+        bid: 0.9,
+        ask: 0.98,
+        last: 0.97,
+        priceChange: -0.92,
+        volume: 33287,
+        openInt: 7433,
+        iv: 26.9,
+        delta: -0.408,
+      },
+      {
         strike: 235,
         bid: 2.2,
         ask: 2.35,
@@ -69,6 +167,17 @@ const optionsChain = {
         delta: -0.725,
       },
       {
+        strike: 237.5,
+        bid: 4.2,
+        ask: 4.65,
+        last: 4.45,
+        priceChange: -0.84,
+        volume: 875,
+        openInt: 5005,
+        iv: 28.39,
+        delta: -0.888,
+      },
+      {
         strike: 240,
         bid: 6.55,
         ask: 7.0,
@@ -78,6 +187,72 @@ const optionsChain = {
         openInt: 6115,
         iv: 36.75,
         delta: -0.931,
+      },
+      {
+        strike: 242.5,
+        bid: 8.8,
+        ask: 9.8,
+        last: 9.45,
+        priceChange: -1.02,
+        volume: 1763,
+        openInt: 1773,
+        iv: 50.06,
+        delta: -0.93,
+      },
+      {
+        strike: 245,
+        bid: 10.5,
+        ask: 11.8,
+        last: 11.2,
+        priceChange: -1.15,
+        volume: 1423,
+        openInt: 2104,
+        iv: 55.18,
+        delta: -0.925,
+      },
+      {
+        strike: 247.5,
+        bid: 12.75,
+        ask: 13.9,
+        last: 13.5,
+        priceChange: -1.35,
+        volume: 1194,
+        openInt: 1987,
+        iv: 59.22,
+        delta: -0.92,
+      },
+      {
+        strike: 250,
+        bid: 15.3,
+        ask: 16.45,
+        last: 16.0,
+        priceChange: -1.5,
+        volume: 978,
+        openInt: 1782,
+        iv: 63.11,
+        delta: -0.915,
+      },
+      {
+        strike: 252.5,
+        bid: 18.1,
+        ask: 19.25,
+        last: 18.9,
+        priceChange: -1.6,
+        volume: 874,
+        openInt: 1623,
+        iv: 66.87,
+        delta: -0.91,
+      },
+      {
+        strike: 255,
+        bid: 21.0,
+        ask: 22.15,
+        last: 21.75,
+        priceChange: -1.75,
+        volume: 763,
+        openInt: 1456,
+        iv: 70.44,
+        delta: -0.905,
       },
     ],
   },
@@ -95,6 +270,17 @@ const optionsChain = {
         delta: 0.823,
       },
       {
+        strike: 232.5,
+        bid: 2.95,
+        ask: 3.15,
+        last: 3.05,
+        change: -0.35,
+        volume: 42168,
+        openInt: 9876,
+        iv: 26.15,
+        delta: 0.653,
+      },
+      {
         strike: 235,
         bid: 1.65,
         ask: 1.75,
@@ -106,6 +292,17 @@ const optionsChain = {
         delta: 0.462,
       },
       {
+        strike: 237.5,
+        bid: 0.85,
+        ask: 0.95,
+        last: 0.9,
+        change: -0.25,
+        volume: 18764,
+        openInt: 15234,
+        iv: 23.85,
+        delta: 0.294,
+      },
+      {
         strike: 240,
         bid: 0.4,
         ask: 0.45,
@@ -115,6 +312,72 @@ const optionsChain = {
         openInt: 21435,
         iv: 24.65,
         delta: 0.165,
+      },
+      {
+        strike: 242.5,
+        bid: 0.18,
+        ask: 0.22,
+        last: 0.2,
+        change: -0.08,
+        volume: 5327,
+        openInt: 11245,
+        iv: 26.25,
+        delta: 0.089,
+      },
+      {
+        strike: 245,
+        bid: 0.08,
+        ask: 0.12,
+        last: 0.1,
+        change: -0.05,
+        volume: 3215,
+        openInt: 7654,
+        iv: 28.35,
+        delta: 0.045,
+      },
+      {
+        strike: 247.5,
+        bid: 0.03,
+        ask: 0.05,
+        last: 0.04,
+        change: -0.03,
+        volume: 1876,
+        openInt: 4532,
+        iv: 30.65,
+        delta: 0.023,
+      },
+      {
+        strike: 250,
+        bid: 0.02,
+        ask: 0.04,
+        last: 0.03,
+        change: -0.01,
+        volume: 1123,
+        openInt: 3254,
+        iv: 33.45,
+        delta: 0.012,
+      },
+      {
+        strike: 252.5,
+        bid: 0.01,
+        ask: 0.03,
+        last: 0.02,
+        change: 0.0,
+        volume: 783,
+        openInt: 2143,
+        iv: 35.85,
+        delta: 0.008,
+      },
+      {
+        strike: 255,
+        bid: 0.01,
+        ask: 0.02,
+        last: 0.01,
+        change: 0.0,
+        volume: 524,
+        openInt: 1453,
+        iv: 37.95,
+        delta: 0.004,
       },
     ],
     puts: [
@@ -130,6 +393,17 @@ const optionsChain = {
         delta: -0.198,
       },
       {
+        strike: 232.5,
+        bid: 1.55,
+        ask: 1.7,
+        last: 1.65,
+        priceChange: -0.62,
+        volume: 25342,
+        openInt: 6542,
+        iv: 25.75,
+        delta: -0.362,
+      },
+      {
         strike: 235,
         bid: 2.75,
         ask: 2.95,
@@ -141,6 +415,17 @@ const optionsChain = {
         delta: -0.564,
       },
       {
+        strike: 237.5,
+        bid: 4.45,
+        ask: 4.75,
+        last: 4.6,
+        priceChange: -0.7,
+        volume: 1541,
+        openInt: 4321,
+        iv: 25.65,
+        delta: -0.728,
+      },
+      {
         strike: 240,
         bid: 6.55,
         ask: 6.85,
@@ -150,6 +435,320 @@ const optionsChain = {
         openInt: 5421,
         iv: 27.85,
         delta: -0.846,
+      },
+      {
+        strike: 242.5,
+        bid: 9.05,
+        ask: 9.45,
+        last: 9.25,
+        priceChange: -0.75,
+        volume: 1432,
+        openInt: 1654,
+        iv: 32.45,
+        delta: -0.917,
+      },
+      {
+        strike: 245,
+        bid: 11.75,
+        ask: 12.25,
+        last: 12.0,
+        priceChange: -0.85,
+        volume: 1265,
+        openInt: 1876,
+        iv: 35.65,
+        delta: -0.954,
+      },
+      {
+        strike: 247.5,
+        bid: 14.65,
+        ask: 15.15,
+        last: 14.9,
+        priceChange: -0.95,
+        volume: 1087,
+        openInt: 1765,
+        iv: 38.85,
+        delta: -0.974,
+      },
+      {
+        strike: 250,
+        bid: 17.75,
+        ask: 18.25,
+        last: 18.0,
+        priceChange: -1.05,
+        volume: 876,
+        openInt: 1564,
+        iv: 41.75,
+        delta: -0.986,
+      },
+      {
+        strike: 252.5,
+        bid: 20.85,
+        ask: 21.35,
+        last: 21.1,
+        priceChange: -1.15,
+        volume: 768,
+        openInt: 1432,
+        iv: 44.45,
+        delta: -0.992,
+      },
+      {
+        strike: 255,
+        bid: 24.05,
+        ask: 24.55,
+        last: 24.3,
+        priceChange: -1.25,
+        volume: 654,
+        openInt: 1354,
+        iv: 46.85,
+        delta: -0.995,
+      },
+    ],
+  },
+  "2025-06-20": {
+    calls: [
+      {
+        strike: 230,
+        bid: 6.15,
+        ask: 6.45,
+        last: 6.3,
+        change: -0.12,
+        volume: 10543,
+        openInt: 12543,
+        iv: 26.85,
+        delta: 0.841,
+      },
+      {
+        strike: 232.5,
+        bid: 4.25,
+        ask: 4.55,
+        last: 4.4,
+        change: -0.25,
+        volume: 35432,
+        openInt: 8765,
+        iv: 25.25,
+        delta: 0.698,
+      },
+      {
+        strike: 235,
+        bid: 2.75,
+        ask: 2.95,
+        last: 2.85,
+        change: -0.3,
+        volume: 42543,
+        openInt: 16542,
+        iv: 23.85,
+        delta: 0.542,
+      },
+      {
+        strike: 237.5,
+        bid: 1.65,
+        ask: 1.85,
+        last: 1.75,
+        change: -0.22,
+        volume: 15432,
+        openInt: 13542,
+        iv: 22.95,
+        delta: 0.394,
+      },
+      {
+        strike: 240,
+        bid: 0.95,
+        ask: 1.1,
+        last: 1.05,
+        change: -0.15,
+        volume: 9876,
+        openInt: 19543,
+        iv: 22.85,
+        delta: 0.265,
+      },
+      {
+        strike: 242.5,
+        bid: 0.55,
+        ask: 0.65,
+        last: 0.6,
+        change: -0.1,
+        volume: 4765,
+        openInt: 10432,
+        iv: 23.65,
+        delta: 0.169,
+      },
+      {
+        strike: 245,
+        bid: 0.3,
+        ask: 0.38,
+        last: 0.35,
+        change: -0.07,
+        volume: 3245,
+        openInt: 7123,
+        iv: 24.95,
+        delta: 0.103,
+      },
+      {
+        strike: 247.5,
+        bid: 0.15,
+        ask: 0.22,
+        last: 0.19,
+        change: -0.05,
+        volume: 1876,
+        openInt: 4321,
+        iv: 26.35,
+        delta: 0.061,
+      },
+      {
+        strike: 250,
+        bid: 0.08,
+        ask: 0.13,
+        last: 0.1,
+        change: -0.03,
+        volume: 1234,
+        openInt: 3124,
+        iv: 27.85,
+        delta: 0.035,
+      },
+      {
+        strike: 252.5,
+        bid: 0.04,
+        ask: 0.08,
+        last: 0.06,
+        change: -0.02,
+        volume: 854,
+        openInt: 2043,
+        iv: 29.65,
+        delta: 0.02,
+      },
+      {
+        strike: 255,
+        bid: 0.02,
+        ask: 0.05,
+        last: 0.04,
+        change: -0.01,
+        volume: 623,
+        openInt: 1432,
+        iv: 31.25,
+        delta: 0.011,
+      },
+    ],
+    puts: [
+      {
+        strike: 230,
+        bid: 1.35,
+        ask: 1.5,
+        last: 1.45,
+        priceChange: -0.35,
+        volume: 28765,
+        openInt: 7654,
+        iv: 25.85,
+        delta: -0.185,
+      },
+      {
+        strike: 232.5,
+        bid: 2.15,
+        ask: 2.35,
+        last: 2.25,
+        priceChange: -0.5,
+        volume: 21543,
+        openInt: 6123,
+        iv: 24.65,
+        delta: -0.315,
+      },
+      {
+        strike: 235,
+        bid: 3.25,
+        ask: 3.45,
+        last: 3.35,
+        priceChange: -0.65,
+        volume: 9876,
+        openInt: 4567,
+        iv: 23.75,
+        delta: -0.47,
+      },
+      {
+        strike: 237.5,
+        bid: 4.75,
+        ask: 5.0,
+        last: 4.9,
+        priceChange: -0.55,
+        volume: 2543,
+        openInt: 4123,
+        iv: 23.95,
+        delta: -0.618,
+      },
+      {
+        strike: 240,
+        bid: 6.65,
+        ask: 6.95,
+        last: 6.8,
+        priceChange: -0.5,
+        volume: 1876,
+        openInt: 5123,
+        iv: 24.85,
+        delta: -0.747,
+      },
+      {
+        strike: 242.5,
+        bid: 8.95,
+        ask: 9.3,
+        last: 9.15,
+        priceChange: -0.6,
+        volume: 1654,
+        openInt: 1876,
+        iv: 26.75,
+        delta: -0.842,
+      },
+      {
+        strike: 245,
+        bid: 11.65,
+        ask: 12.05,
+        last: 11.85,
+        priceChange: -0.7,
+        volume: 1432,
+        openInt: 1765,
+        iv: 28.75,
+        delta: -0.903,
+      },
+      {
+        strike: 247.5,
+        bid: 14.65,
+        ask: 15.05,
+        last: 14.85,
+        priceChange: -0.8,
+        volume: 1234,
+        openInt: 1654,
+        iv: 31.05,
+        delta: -0.942,
+      },
+      {
+        strike: 250,
+        bid: 17.85,
+        ask: 18.25,
+        last: 18.05,
+        priceChange: -0.9,
+        volume: 1087,
+        openInt: 1432,
+        iv: 33.45,
+        delta: -0.966,
+      },
+      {
+        strike: 252.5,
+        bid: 21.15,
+        ask: 21.55,
+        last: 21.35,
+        priceChange: -1.0,
+        volume: 954,
+        openInt: 1324,
+        iv: 35.75,
+        delta: -0.981,
+      },
+      {
+        strike: 255,
+        bid: 24.55,
+        ask: 24.95,
+        last: 24.75,
+        priceChange: -1.1,
+        volume: 843,
+        openInt: 1243,
+        iv: 37.85,
+        delta: -0.989,
       },
     ],
   },
@@ -223,9 +822,11 @@ const getOptionData = (expiration, strike, isCall) => {
   return optionsChain[expiration][side].find((o) => o.strike === strike);
 };
 
-function addChartSeries(chart, name, data, className, dashStyle) {
+function addChartSeries(chart, name, data, className) {
+  // Prevent duplicate series by name
+  if (chart.series.find((s) => s.name === name)) return;
   chart.addSeries(
-    { name, data, className, type: "line", lineWidth: 1.5, dashStyle },
+    { name, data, className, type: "line", lineWidth: 1.5 },
     false
   );
 }
@@ -234,16 +835,11 @@ function addChartSeries(chart, name, data, className, dashStyle) {
 const createStrikePlotline = (strike, isCall) => ({
   value: strike,
   className: isCall ? "call-strike-line" : "put-strike-line",
-  dashStyle: "shortdash",
-  width: 1.5,
-  zIndex: 3,
-  color: isCall ? "#28a745" : "#007bff",
   label: {
     text: `${isCall ? "Call" : "Put"} $${strike}`,
     align: isCall ? "left" : "right",
     verticalAlign: "bottom",
     y: -5,
-    style: { fontSize: "10px", fontWeight: "bold" },
   },
 });
 
@@ -403,8 +999,7 @@ function ensureOptionSeries(strike, isCall, isLong) {
       chart,
       getSeriesName(strike, isCall, isLong, activeExpiration),
       createPayoffData(strike, premium, isCall, isLong),
-      getSeriesClassName(isCall, isLong),
-      getExpirationLineStyle(activeExpiration)
+      getSeriesClassName(isCall, isLong)
     );
   });
   syncPlotLines();
@@ -452,16 +1047,11 @@ function syncPlotLines() {
         beLine.push({
           value: v,
           className: "combined-breakeven-line",
-          dashStyle: "solid",
-          width: 2,
-          color: "#ff6b35",
-          zIndex: 5,
           label: {
             text: `BE $${v.toFixed(2)}`,
             align: "center",
             verticalAlign: "bottom",
             y: -5,
-            style: { fontSize: "10px", fontWeight: "bold", color: "#ff6b35" },
           },
         });
       }
@@ -497,8 +1087,7 @@ function updateCombinedStrategy() {
         chart,
         "Combined Strategy",
         combinedData,
-        "combined-strategy-series",
-        "Solid"
+        "combined-strategy-series"
       );
       const cs = chart.series.find((s) => s.name === "Combined Strategy");
       cs?.update({ lineWidth: 3, zIndex: 10 }, false);
@@ -897,11 +1486,7 @@ function addSelectedOptionTable() {
   container.appendChild(table);
 }
 
-function getExpirationLineStyle(expiration) {
-  const expirations = Object.keys(optionsChain);
-  const index = expirations.indexOf(expiration);
-  return LINE_STYLES[index % LINE_STYLES.length];
-}
+// Removed getExpirationLineStyle; dash styles now purely CSS-based per series class
 
 function showMaxOptionsWarning() {
   let warningEl = document.getElementById("chart-max-options-warning");
@@ -1013,25 +1598,29 @@ const board = Dashboards.board("container", {
       ],
       events: {
         mount: function () {
-          setTimeout(() => {
-            document.querySelectorAll(".expiration-tab").forEach((tab) => {
-              const newTab = tab.cloneNode(true);
-              tab.parentNode?.replaceChild(newTab, tab);
-              newTab.addEventListener("click", function () {
-                const selExp = this.id.replace("expiration-tab-", "");
-                document
-                  .querySelectorAll(".expiration-tab")
-                  .forEach((t) =>
-                    t.classList.toggle(
-                      "active",
-                      t.id === `expiration-tab-${selExp}`
-                    )
-                  );
-                activeExpiration = selExp;
-                updateOptionsGrid(selExp);
-              });
-            });
-          }, 80);
+
+          const tabsContainer = document.getElementById("expiration-tabs");
+          if (!tabsContainer || tabsContainer.__hasDelegatedListener) return;
+          tabsContainer.addEventListener(
+            "click",
+            (e) => {
+              const btn = e.target.closest(".expiration-tab");
+              if (!btn || !tabsContainer.contains(btn)) return;
+              const selExp = btn.id.replace("expiration-tab-", "");
+              if (selExp === activeExpiration) return; 
+              document
+                .querySelectorAll(".expiration-tab")
+                .forEach((t) => t.classList.toggle("active", t === btn));
+              activeExpiration = selExp;
+              updateOptionsGrid(selExp);
+            },
+            { passive: true }
+          );
+          Object.defineProperty(tabsContainer, "__hasDelegatedListener", {
+            value: true,
+            writable: false,
+            enumerable: false,
+          });
         },
       },
     },
