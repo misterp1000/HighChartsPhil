@@ -1,0 +1,2176 @@
+DataGrid.AST.bypassHTMLFiltering = true;
+
+Highcharts.setOptions({
+  chart: { styledMode: true },
+});
+
+const MAX_OPTIONS_IN_CHART = 3;
+const LINE_STYLES = ["Solid", "ShortDash", "ShortDot", "Dash", "Dot"];
+
+const $ = (sel) => document.querySelector(sel);
+const $$ = (sel) => document.querySelectorAll(sel);
+
+// Batch chart updates for single redraw
+let chartBatch = { series: [], plotLines: null, pending: false };
+const batchChartUpdate = (fn) => {
+  if (!chartBatch.pending) {
+    chartBatch.pending = true;
+    setTimeout(() => {
+      const chart = board.getComponentByCellId("chart")?.chart;
+      if (chart) {
+        chartBatch.series.forEach(({ action, data }) => {
+          if (action === "add") chart.addSeries(data, false);
+          else if (action === "remove")
+            chart.series.find((s) => s.name === data)?.remove(false);
+        });
+        if (chartBatch.plotLines)
+          chart.xAxis[0].update({ plotLines: chartBatch.plotLines }, false);
+        chart.redraw();
+      }
+      chartBatch = { series: [], plotLines: null, pending: false };
+    }, 16);
+  }
+  fn();
+};
+
+// Option state management
+const toggleOption = (strike, isCall, isLong) => {
+  const side = isCall ? "calls" : "puts";
+  const existing = selectedOptions[side].findIndex(
+    (o) => o.strike === strike && o.expiration === activeExpiration
+  );
+
+  if (existing >= 0) {
+    if (selectedOptions[side][existing].isLong === isLong) {
+      selectedOptions[side].splice(existing, 1);
+      return "remove";
+    } else {
+      selectedOptions[side][existing].isLong = isLong;
+      return "update";
+    }
+  } else {
+    const optionData = optionsChain[activeExpiration][side].find(
+      (o) => o.strike === strike
+    );
+    if (!optionData) return null;
+    selectedOptions[side].push({
+      strike,
+      premium: optionData.last,
+      isLong,
+      expiration: activeExpiration,
+      rowIndex: optionsChain[activeExpiration][side].findIndex(
+        (o) => o.strike === strike
+      ),
+    });
+    return "add";
+  }
+};
+
+const optionsChain = {
+  "2025-04-18": {
+    calls: [
+      {
+        strike: 230,
+        bid: 3.45,
+        ask: 3.75,
+        last: 3.68,
+        change: -0.04,
+        volume: 20334,
+        openInt: 18108,
+        iv: 31.95,
+        delta: 0.801,
+      },
+      {
+        strike: 232.5,
+        bid: 1.68,
+        ask: 1.78,
+        last: 1.74,
+        change: -0.3,
+        volume: 68277,
+        openInt: 11362,
+        iv: 27.45,
+        delta: 0.591,
+      },
+      {
+        strike: 235,
+        bid: 0.58,
+        ask: 0.59,
+        last: 0.58,
+        change: -0.42,
+        volume: 81863,
+        openInt: 23722,
+        iv: 25.96,
+        delta: 0.293,
+      },
+      {
+        strike: 237.5,
+        bid: 0.14,
+        ask: 0.15,
+        last: 0.14,
+        change: 0.3,
+        volume: 20724,
+        openInt: 17283,
+        iv: 26.13,
+        delta: 0.094,
+      },
+      {
+        strike: 240,
+        bid: 0.04,
+        ask: 0.05,
+        last: 0.05,
+        change: -0.13,
+        volume: 17923,
+        openInt: 28794,
+        iv: 29.93,
+        delta: 0.035,
+      },
+      {
+        strike: 242.5,
+        bid: 0.02,
+        ask: 0.03,
+        last: 0.03,
+        change: -0.05,
+        volume: 4486,
+        openInt: 13384,
+        iv: 35.66,
+        delta: 0.019,
+      },
+      {
+        strike: 245,
+        bid: 0.01,
+        ask: 0.02,
+        last: 0.02,
+        change: -0.03,
+        volume: 3021,
+        openInt: 9457,
+        iv: 38.12,
+        delta: 0.01,
+      },
+      {
+        strike: 247.5,
+        bid: 0.01,
+        ask: 0.01,
+        last: 0.01,
+        change: -0.01,
+        volume: 1524,
+        openInt: 5738,
+        iv: 41.88,
+        delta: 0.007,
+      },
+      {
+        strike: 250,
+        bid: 0.01,
+        ask: 0.01,
+        last: 0.01,
+        change: 0.0,
+        volume: 978,
+        openInt: 3894,
+        iv: 45.32,
+        delta: 0.005,
+      },
+      {
+        strike: 252.5,
+        bid: 0.01,
+        ask: 0.01,
+        last: 0.01,
+        change: 0.0,
+        volume: 543,
+        openInt: 2541,
+        iv: 48.65,
+        delta: 0.003,
+      },
+      {
+        strike: 255,
+        bid: 0.01,
+        ask: 0.01,
+        last: 0.01,
+        change: 0.0,
+        volume: 312,
+        openInt: 1764,
+        iv: 50.77,
+        delta: 0.002,
+      },
+    ],
+    puts: [
+      {
+        strike: 230,
+        bid: 0.35,
+        ask: 0.37,
+        last: 0.36,
+        priceChange: -0.65,
+        volume: 48783,
+        openInt: 10683,
+        iv: 29.66,
+        delta: -0.182,
+      },
+      {
+        strike: 232.5,
+        bid: 0.9,
+        ask: 0.98,
+        last: 0.97,
+        priceChange: -0.92,
+        volume: 33287,
+        openInt: 7433,
+        iv: 26.9,
+        delta: -0.408,
+      },
+      {
+        strike: 235,
+        bid: 2.2,
+        ask: 2.35,
+        last: 2.25,
+        priceChange: 1.15,
+        volume: 5643,
+        openInt: 5334,
+        iv: 23.84,
+        delta: -0.725,
+      },
+      {
+        strike: 237.5,
+        bid: 4.2,
+        ask: 4.65,
+        last: 4.45,
+        priceChange: -0.84,
+        volume: 875,
+        openInt: 5005,
+        iv: 28.39,
+        delta: -0.888,
+      },
+      {
+        strike: 240,
+        bid: 6.55,
+        ask: 7.0,
+        last: 6.9,
+        priceChange: -0.69,
+        volume: 1064,
+        openInt: 6115,
+        iv: 36.75,
+        delta: -0.931,
+      },
+      {
+        strike: 242.5,
+        bid: 8.8,
+        ask: 9.8,
+        last: 9.45,
+        priceChange: -1.02,
+        volume: 1763,
+        openInt: 1773,
+        iv: 50.06,
+        delta: -0.93,
+      },
+      {
+        strike: 245,
+        bid: 10.5,
+        ask: 11.8,
+        last: 11.2,
+        priceChange: -1.15,
+        volume: 1423,
+        openInt: 2104,
+        iv: 55.18,
+        delta: -0.925,
+      },
+      {
+        strike: 247.5,
+        bid: 12.75,
+        ask: 13.9,
+        last: 13.5,
+        priceChange: -1.35,
+        volume: 1194,
+        openInt: 1987,
+        iv: 59.22,
+        delta: -0.92,
+      },
+      {
+        strike: 250,
+        bid: 15.3,
+        ask: 16.45,
+        last: 16.0,
+        priceChange: -1.5,
+        volume: 978,
+        openInt: 1782,
+        iv: 63.11,
+        delta: -0.915,
+      },
+      {
+        strike: 252.5,
+        bid: 18.1,
+        ask: 19.25,
+        last: 18.9,
+        priceChange: -1.6,
+        volume: 874,
+        openInt: 1623,
+        iv: 66.87,
+        delta: -0.91,
+      },
+      {
+        strike: 255,
+        bid: 21.0,
+        ask: 22.15,
+        last: 21.75,
+        priceChange: -1.75,
+        volume: 763,
+        openInt: 1456,
+        iv: 70.44,
+        delta: -0.905,
+      },
+    ],
+  },
+  "2025-05-16": {
+    calls: [
+      {
+        strike: 230,
+        bid: 4.85,
+        ask: 5.1,
+        last: 5.0,
+        change: -0.08,
+        volume: 15432,
+        openInt: 14023,
+        iv: 28.75,
+        delta: 0.823,
+      },
+      {
+        strike: 232.5,
+        bid: 2.95,
+        ask: 3.15,
+        last: 3.05,
+        change: -0.35,
+        volume: 42168,
+        openInt: 9876,
+        iv: 26.15,
+        delta: 0.653,
+      },
+      {
+        strike: 235,
+        bid: 1.65,
+        ask: 1.75,
+        last: 1.7,
+        change: -0.38,
+        volume: 53421,
+        openInt: 18543,
+        iv: 24.35,
+        delta: 0.462,
+      },
+      {
+        strike: 237.5,
+        bid: 0.85,
+        ask: 0.95,
+        last: 0.9,
+        change: -0.25,
+        volume: 18764,
+        openInt: 15234,
+        iv: 23.85,
+        delta: 0.294,
+      },
+      {
+        strike: 240,
+        bid: 0.4,
+        ask: 0.45,
+        last: 0.42,
+        change: -0.18,
+        volume: 11542,
+        openInt: 21435,
+        iv: 24.65,
+        delta: 0.165,
+      },
+      {
+        strike: 242.5,
+        bid: 0.18,
+        ask: 0.22,
+        last: 0.2,
+        change: -0.08,
+        volume: 5327,
+        openInt: 11245,
+        iv: 26.25,
+        delta: 0.089,
+      },
+      {
+        strike: 245,
+        bid: 0.08,
+        ask: 0.12,
+        last: 0.1,
+        change: -0.05,
+        volume: 3215,
+        openInt: 7654,
+        iv: 28.35,
+        delta: 0.045,
+      },
+      {
+        strike: 247.5,
+        bid: 0.03,
+        ask: 0.05,
+        last: 0.04,
+        change: -0.03,
+        volume: 1876,
+        openInt: 4532,
+        iv: 30.65,
+        delta: 0.023,
+      },
+      {
+        strike: 250,
+        bid: 0.02,
+        ask: 0.04,
+        last: 0.03,
+        change: -0.01,
+        volume: 1123,
+        openInt: 3254,
+        iv: 33.45,
+        delta: 0.012,
+      },
+      {
+        strike: 252.5,
+        bid: 0.01,
+        ask: 0.03,
+        last: 0.02,
+        change: 0.0,
+        volume: 783,
+        openInt: 2143,
+        iv: 35.85,
+        delta: 0.008,
+      },
+      {
+        strike: 255,
+        bid: 0.01,
+        ask: 0.02,
+        last: 0.01,
+        change: 0.0,
+        volume: 524,
+        openInt: 1453,
+        iv: 37.95,
+        delta: 0.004,
+      },
+    ],
+    puts: [
+      {
+        strike: 230,
+        bid: 0.85,
+        ask: 0.95,
+        last: 0.9,
+        priceChange: -0.45,
+        volume: 32541,
+        openInt: 8765,
+        iv: 27.35,
+        delta: -0.198,
+      },
+      {
+        strike: 232.5,
+        bid: 1.55,
+        ask: 1.7,
+        last: 1.65,
+        priceChange: -0.62,
+        volume: 25342,
+        openInt: 6542,
+        iv: 25.75,
+        delta: -0.362,
+      },
+      {
+        strike: 235,
+        bid: 2.75,
+        ask: 2.95,
+        last: 2.85,
+        priceChange: -0.95,
+        volume: 7652,
+        openInt: 4875,
+        iv: 24.45,
+        delta: -0.564,
+      },
+      {
+        strike: 237.5,
+        bid: 4.45,
+        ask: 4.75,
+        last: 4.6,
+        priceChange: -0.7,
+        volume: 1541,
+        openInt: 4321,
+        iv: 25.65,
+        delta: -0.728,
+      },
+      {
+        strike: 240,
+        bid: 6.55,
+        ask: 6.85,
+        last: 6.7,
+        priceChange: -0.55,
+        volume: 1253,
+        openInt: 5421,
+        iv: 27.85,
+        delta: -0.846,
+      },
+      {
+        strike: 242.5,
+        bid: 9.05,
+        ask: 9.45,
+        last: 9.25,
+        priceChange: -0.75,
+        volume: 1432,
+        openInt: 1654,
+        iv: 32.45,
+        delta: -0.917,
+      },
+      {
+        strike: 245,
+        bid: 11.75,
+        ask: 12.25,
+        last: 12.0,
+        priceChange: -0.85,
+        volume: 1265,
+        openInt: 1876,
+        iv: 35.65,
+        delta: -0.954,
+      },
+      {
+        strike: 247.5,
+        bid: 14.65,
+        ask: 15.15,
+        last: 14.9,
+        priceChange: -0.95,
+        volume: 1087,
+        openInt: 1765,
+        iv: 38.85,
+        delta: -0.974,
+      },
+      {
+        strike: 250,
+        bid: 17.75,
+        ask: 18.25,
+        last: 18.0,
+        priceChange: -1.05,
+        volume: 876,
+        openInt: 1564,
+        iv: 41.75,
+        delta: -0.986,
+      },
+      {
+        strike: 252.5,
+        bid: 20.85,
+        ask: 21.35,
+        last: 21.1,
+        priceChange: -1.15,
+        volume: 768,
+        openInt: 1432,
+        iv: 44.45,
+        delta: -0.992,
+      },
+      {
+        strike: 255,
+        bid: 24.05,
+        ask: 24.55,
+        last: 24.3,
+        priceChange: -1.25,
+        volume: 654,
+        openInt: 1354,
+        iv: 46.85,
+        delta: -0.995,
+      },
+    ],
+  },
+  "2025-06-20": {
+    calls: [
+      {
+        strike: 230,
+        bid: 6.15,
+        ask: 6.45,
+        last: 6.3,
+        change: -0.12,
+        volume: 10543,
+        openInt: 12543,
+        iv: 26.85,
+        delta: 0.841,
+      },
+      {
+        strike: 232.5,
+        bid: 4.25,
+        ask: 4.55,
+        last: 4.4,
+        change: -0.25,
+        volume: 35432,
+        openInt: 8765,
+        iv: 25.25,
+        delta: 0.698,
+      },
+      {
+        strike: 235,
+        bid: 2.75,
+        ask: 2.95,
+        last: 2.85,
+        change: -0.3,
+        volume: 42543,
+        openInt: 16542,
+        iv: 23.85,
+        delta: 0.542,
+      },
+      {
+        strike: 237.5,
+        bid: 1.65,
+        ask: 1.85,
+        last: 1.75,
+        change: -0.22,
+        volume: 15432,
+        openInt: 13542,
+        iv: 22.95,
+        delta: 0.394,
+      },
+      {
+        strike: 240,
+        bid: 0.95,
+        ask: 1.1,
+        last: 1.05,
+        change: -0.15,
+        volume: 9876,
+        openInt: 19543,
+        iv: 22.85,
+        delta: 0.265,
+      },
+      {
+        strike: 242.5,
+        bid: 0.55,
+        ask: 0.65,
+        last: 0.6,
+        change: -0.1,
+        volume: 4765,
+        openInt: 10432,
+        iv: 23.65,
+        delta: 0.169,
+      },
+      {
+        strike: 245,
+        bid: 0.3,
+        ask: 0.38,
+        last: 0.35,
+        change: -0.07,
+        volume: 3245,
+        openInt: 7123,
+        iv: 24.95,
+        delta: 0.103,
+      },
+      {
+        strike: 247.5,
+        bid: 0.15,
+        ask: 0.22,
+        last: 0.19,
+        change: -0.05,
+        volume: 1876,
+        openInt: 4321,
+        iv: 26.35,
+        delta: 0.061,
+      },
+      {
+        strike: 250,
+        bid: 0.08,
+        ask: 0.13,
+        last: 0.1,
+        change: -0.03,
+        volume: 1234,
+        openInt: 3124,
+        iv: 27.85,
+        delta: 0.035,
+      },
+      {
+        strike: 252.5,
+        bid: 0.04,
+        ask: 0.08,
+        last: 0.06,
+        change: -0.02,
+        volume: 854,
+        openInt: 2043,
+        iv: 29.65,
+        delta: 0.02,
+      },
+      {
+        strike: 255,
+        bid: 0.02,
+        ask: 0.05,
+        last: 0.04,
+        change: -0.01,
+        volume: 623,
+        openInt: 1432,
+        iv: 31.25,
+        delta: 0.011,
+      },
+    ],
+    puts: [
+      {
+        strike: 230,
+        bid: 1.35,
+        ask: 1.5,
+        last: 1.45,
+        priceChange: -0.35,
+        volume: 28765,
+        openInt: 7654,
+        iv: 25.85,
+        delta: -0.185,
+      },
+      {
+        strike: 232.5,
+        bid: 2.15,
+        ask: 2.35,
+        last: 2.25,
+        priceChange: -0.5,
+        volume: 21543,
+        openInt: 6123,
+        iv: 24.65,
+        delta: -0.315,
+      },
+      {
+        strike: 235,
+        bid: 3.25,
+        ask: 3.45,
+        last: 3.35,
+        priceChange: -0.65,
+        volume: 9876,
+        openInt: 4567,
+        iv: 23.75,
+        delta: -0.47,
+      },
+      {
+        strike: 237.5,
+        bid: 4.75,
+        ask: 5.0,
+        last: 4.9,
+        priceChange: -0.55,
+        volume: 2543,
+        openInt: 4123,
+        iv: 23.95,
+        delta: -0.618,
+      },
+      {
+        strike: 240,
+        bid: 6.65,
+        ask: 6.95,
+        last: 6.8,
+        priceChange: -0.5,
+        volume: 1876,
+        openInt: 5123,
+        iv: 24.85,
+        delta: -0.747,
+      },
+      {
+        strike: 242.5,
+        bid: 8.95,
+        ask: 9.3,
+        last: 9.15,
+        priceChange: -0.6,
+        volume: 1654,
+        openInt: 1876,
+        iv: 26.75,
+        delta: -0.842,
+      },
+      {
+        strike: 245,
+        bid: 11.65,
+        ask: 12.05,
+        last: 11.85,
+        priceChange: -0.7,
+        volume: 1432,
+        openInt: 1765,
+        iv: 28.75,
+        delta: -0.903,
+      },
+      {
+        strike: 247.5,
+        bid: 14.65,
+        ask: 15.05,
+        last: 14.85,
+        priceChange: -0.8,
+        volume: 1234,
+        openInt: 1654,
+        iv: 31.05,
+        delta: -0.942,
+      },
+      {
+        strike: 250,
+        bid: 17.85,
+        ask: 18.25,
+        last: 18.05,
+        priceChange: -0.9,
+        volume: 1087,
+        openInt: 1432,
+        iv: 33.45,
+        delta: -0.966,
+      },
+      {
+        strike: 252.5,
+        bid: 21.15,
+        ask: 21.55,
+        last: 21.35,
+        priceChange: -1.0,
+        volume: 954,
+        openInt: 1324,
+        iv: 35.75,
+        delta: -0.981,
+      },
+      {
+        strike: 255,
+        bid: 24.55,
+        ask: 24.95,
+        last: 24.75,
+        priceChange: -1.1,
+        volume: 843,
+        openInt: 1243,
+        iv: 37.85,
+        delta: -0.989,
+      },
+    ],
+  },
+};
+
+// Helper definitions
+const stockPrices = Array.from({ length: 41 }, (_, i) => 220 + i);
+
+function calculateCallPayoff(price, strike, premium, isLong = true) {
+  const multiplier = isLong ? 1 : -1;
+  return multiplier * (Math.max(price - strike, 0) - premium) * 100;
+}
+
+function calculatePutPayoff(price, strike, premium, isLong = true) {
+  const multiplier = isLong ? 1 : -1;
+  return multiplier * (Math.max(strike - price, 0) - premium) * 100;
+}
+
+document.addEventListener("click", function (e) {
+  const btn = e.target.closest(".option-btn");
+  if (!btn) return;
+
+  const strikeCell = btn.closest(".strike-cell");
+  const strike = parseFloat(
+    strikeCell.querySelector(".strike-value")?.textContent
+  );
+  if (isNaN(strike)) return;
+
+  const isCall =
+    btn.classList.contains("call-long") || btn.classList.contains("call-short");
+  const isLong =
+    btn.classList.contains("call-long") || btn.classList.contains("put-long");
+  const action = toggleOption(strike, isCall, isLong);
+  if (!action) return;
+
+  const buttons = strikeCell.querySelectorAll(".option-btn");
+  buttons.forEach((b) => b.classList.remove("selected", "unselected"));
+  if (action !== "remove") {
+    btn.classList.add("selected");
+    if (isCall) {
+      strikeCell
+        .querySelector(isLong ? ".call-short" : ".call-long")
+        ?.classList.add("unselected");
+    } else {
+      strikeCell
+        .querySelector(isLong ? ".put-short" : ".put-long")
+        ?.classList.add("unselected");
+    }
+  }
+
+  const hasOptions =
+    selectedOptions.calls.some(
+      (c) => c.strike === strike && c.expiration === activeExpiration
+    ) ||
+    selectedOptions.puts.some(
+      (p) => p.strike === strike && p.expiration === activeExpiration
+    );
+  btn.closest("tr").classList.toggle("row-highlight", hasOptions);
+
+  batchChartUpdate(() => {
+    const optionType = isCall ? "Call" : "Put";
+    const seriesName = `${
+      isLong ? "Long" : "Short"
+    } ${optionType} ${strike} (${formatExpirationDate(activeExpiration)})`;
+
+    if (action === "remove") {
+      chartBatch.series.push({ action: "remove", data: seriesName });
+    } else {
+      if (action === "update") {
+        chartBatch.series.push({
+          action: "remove",
+          data: seriesName.replace(
+            isLong ? "Long" : "Short",
+            isLong ? "Short" : "Long"
+          ),
+        });
+      }
+      updateOptionInChart(strike, isCall, isLong);
+    }
+    updateCombinedStrategy();
+  });
+});
+
+let activeExpiration = Object.keys(optionsChain)[0];
+
+function formatExpirationDate(dateStr) {
+  const date = new Date(dateStr);
+  return date.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+const selectedOptions = {
+  calls: [],
+  puts: [],
+};
+
+//Core functions
+function updateOptionsGrid(expirationDate) {
+  const dateData = optionsChain[expirationDate];
+  if (!dateData) return;
+
+  const chartComponent = board.getComponentByCellId("chart");
+  if (chartComponent?.chart) {
+    selectedOptions.calls = [];
+    selectedOptions.puts = [];
+
+    $$(".option-btn").forEach((btn) =>
+      btn.classList.remove("selected", "unselected")
+    );
+    $$("tr").forEach((row) => row.classList.remove("row-highlight"));
+
+    const optionsContainer = $("#selected-options-container");
+    if (optionsContainer)
+      optionsContainer.innerHTML = "<p>No options selected</p>";
+
+    while (chartComponent.chart.series.length > 0) {
+      chartComponent.chart.series[0].remove(false);
+    }
+
+    chartComponent.chart.xAxis[0].update(
+      {
+        plotLines: [],
+        categories: optionsChain[activeExpiration].calls.map((d) => d.strike),
+      },
+      false
+    );
+
+    const strategyInfoText = $("#strategyInfoText");
+    if (strategyInfoText)
+      strategyInfoText.textContent = "Select options to view strategy analysis";
+  }
+
+  const callsData = dateData.calls;
+  const putsData = dateData.puts;
+
+  try {
+    const chartComponent = board.getComponentByCellId("chart");
+    if (chartComponent && chartComponent.chart) {
+      chartComponent.chart.xAxis[0].update(
+        {
+          categories: optionsChain[activeExpiration].calls.map((d) => d.strike), // Update x-axis categories with strike prices
+        },
+        false
+      );
+      chartComponent.chart.redraw();
+    }
+
+    board.dataPool
+      .getConnector("optionsData")
+      .then((connector) => {
+        if (connector) {
+          console.log("Connector found:", connector);
+          console.log("Connector structure:", Object.keys(connector));
+
+          // Prepare new data from the selected expiration
+          const newData = optionsChain[expirationDate].calls.map(
+            (call, index) => {
+              const put = optionsChain[expirationDate].puts[index] || {};
+              return [
+                call.strike,
+                call.bid,
+                call.ask,
+                call.last,
+                call.change,
+                call.volume,
+                call.openInt,
+                call.iv,
+                call.delta,
+                put.bid,
+                put.ask,
+                put.last,
+                put.priceChange,
+                put.volume,
+                put.openInt,
+                put.iv,
+                put.delta,
+              ];
+            }
+          );
+
+          if (connector.options && connector.options.data !== undefined) {
+            connector.options.data = newData;
+          } else if (connector.data !== undefined) {
+            connector.data = newData;
+          } else {
+            console.error("Could not find data property on connector");
+            return;
+          }
+
+          if (connector.load) {
+            connector.load();
+          } else if (connector.reload) {
+            connector.reload();
+          } else {
+            console.error("No load/reload method found on connector");
+          }
+
+          console.log("Grid updated with new expiration data:", expirationDate);
+        }
+      })
+      .catch((error) => {
+        console.error("Error getting connector:", error);
+      });
+  } catch (error) {
+    console.error("Error updating grid:", error);
+  }
+}
+
+function updateOptionInChart(strike, isCall, isLong) {
+  const chart = board.getComponentByCellId("chart")?.chart;
+  if (!chart) return;
+
+  const optionType = isCall ? "Call" : "Put";
+  const seriesName = `${
+    isLong ? "Long" : "Short"
+  } ${optionType} ${strike} (${formatExpirationDate(activeExpiration)})`;
+  const optionSeriesCount = chart.series.filter(
+    (s) => s.name !== "Combined Strategy"
+  ).length;
+
+  if (
+    optionSeriesCount >= MAX_OPTIONS_IN_CHART &&
+    !chart.series.find((s) => s.name === seriesName)
+  ) {
+    showMaxOptionsWarning();
+    return;
+  }
+
+  const rowData = optionsChain[activeExpiration][
+    isCall ? "calls" : "puts"
+  ].find((o) => o.strike === strike);
+  if (!rowData) return;
+
+  const premium = rowData.last;
+
+  chartBatch.series.push({
+    action: "add",
+    data: {
+      name: seriesName,
+      data: stockPrices.map((price) => ({
+        x: price,
+        y: isCall
+          ? calculateCallPayoff(price, strike, premium, isLong)
+          : calculatePutPayoff(price, strike, premium, isLong),
+      })),
+      className: `${isCall ? "call" : "put"}-${
+        isLong ? "long" : "short"
+      }-series`,
+      type: "line",
+      lineWidth: 1.5,
+      dashStyle: getExpirationLineStyle(activeExpiration),
+    },
+  });
+
+  updatePlotlines(strike, isCall, isLong, premium);
+}
+
+function updatePlotlines(strike, isCall, isLong, premium) {
+  const chart = board.getComponentByCellId("chart")?.chart;
+  if (!chart) return;
+
+  const optionType = isCall ? "Call" : "Put";
+  const plotLines = chart.xAxis[0].options.plotLines || [];
+
+  chartBatch.plotLines = [
+    ...plotLines.filter(
+      (line) => !line.label?.text?.includes(`${optionType} $${strike}`)
+    ),
+    {
+      value: strike,
+      className: `${isCall ? "call" : "put"}-strike-line`,
+      dashStyle: "shortdash",
+      width: 1.5,
+      zIndex: 3,
+      color: isCall ? "#28a745" : "#007bff",
+      label: {
+        text: `${optionType} $${strike}`,
+        align: isCall ? "left" : "right",
+        verticalAlign: "bottom",
+        y: -5,
+        style: { fontSize: "10px", fontWeight: "bold" },
+      },
+    },
+  ];
+}
+
+function updateCombinedStrategy() {
+  const component = board.getComponentByCellId("chart");
+  const strategyInfoText = $("#strategyInfoText");
+
+  if (selectedOptions.calls.length > 0 || selectedOptions.puts.length > 0) {
+    const combinedData = stockPrices.map((price) => {
+      let totalPayoff = 0;
+
+      selectedOptions.calls.forEach((call) => {
+        totalPayoff += calculateCallPayoff(
+          price,
+          call.strike,
+          call.premium,
+          call.isLong
+        );
+      });
+
+      selectedOptions.puts.forEach((put) => {
+        totalPayoff += calculatePutPayoff(
+          price,
+          put.strike,
+          put.premium,
+          put.isLong
+        );
+      });
+
+      return {
+        x: price,
+        y: totalPayoff,
+      };
+    });
+
+    if (component.chart.series.find((s) => s.name === "Combined Strategy")) {
+      chartBatch.series.push({ action: "remove", data: "Combined Strategy" });
+    }
+
+    chartBatch.series.push({
+      action: "add",
+      data: {
+        name: "Combined Strategy",
+        data: combinedData,
+        className: "combined-strategy-series",
+        type: "line",
+        lineWidth: 3,
+        zIndex: 10,
+      },
+    });
+
+    const showCombinedOnly = $("#showCombinedOnly")?.checked;
+    if (showCombinedOnly) {
+      setTimeout(() => {
+        component.chart.series.forEach((series) => {
+          if (series.name !== "Combined Strategy")
+            series.setVisible(false, false);
+        });
+        component.chart.redraw();
+      }, 20);
+    }
+
+    const breakEvenPoints = [];
+    for (let i = 1; i < combinedData.length; i++) {
+      if (
+        (combinedData[i - 1].y < 0 && combinedData[i].y >= 0) ||
+        (combinedData[i - 1].y >= 0 && combinedData[i].y < 0)
+      ) {
+        const x0 = combinedData[i - 1].x;
+        const x1 = combinedData[i].x;
+        const y0 = combinedData[i - 1].y;
+        const y1 = combinedData[i].y;
+        const breakEven = x0 + ((0 - y0) * (x1 - x0)) / (y1 - y0);
+        breakEvenPoints.push(breakEven);
+      }
+    }
+
+    const existingPlotLines = component.chart.xAxis[0].options.plotLines || [];
+    console.log(
+      "Before filtering - existing plotlines:",
+      existingPlotLines.length,
+      existingPlotLines.map((line) => ({
+        className: line.className,
+        value: line.value,
+        label: line.label?.text,
+      }))
+    );
+
+    const strikePlotLines = existingPlotLines.filter((line) => {
+      const isStrikeLine =
+        line.className === "call-strike-line" ||
+        line.className === "put-strike-line";
+      const hasBreakevenText =
+        line.label &&
+        line.label.text &&
+        (line.label.text.includes("BE ") ||
+          line.label.text.includes("Break") ||
+          line.label.text.includes("Combined"));
+
+      const keep = isStrikeLine && !hasBreakevenText;
+      console.log(
+        `Line: ${line.label?.text || "no label"}, className: ${
+          line.className
+        }, keep: ${keep}`
+      );
+      return keep;
+    });
+
+    console.log(
+      "After filtering - strike plotlines:",
+      strikePlotLines.length,
+      strikePlotLines.map((line) => ({
+        className: line.className,
+        value: line.value,
+        label: line.label?.text,
+      }))
+    );
+
+    const newPlotLines = [...strikePlotLines];
+    console.log(
+      "Starting newPlotLines with strike lines:",
+      newPlotLines.length
+    );
+
+    if (breakEvenPoints.length > 0) {
+      const breakevenValue =
+        breakEvenPoints.length === 1
+          ? breakEvenPoints[0]
+          : (Math.min(...breakEvenPoints) + Math.max(...breakEvenPoints)) / 2;
+
+      console.log("Adding breakeven line at:", breakevenValue);
+      newPlotLines.push({
+        value: breakevenValue,
+        className: "combined-breakeven-line",
+        dashStyle: "solid",
+        width: 2,
+        color: "#ff6b35",
+        zIndex: 5,
+        label: {
+          text: `BE $${breakevenValue.toFixed(2)}`,
+          align: "center",
+          verticalAlign: "bottom",
+          y: -5,
+          style: {
+            fontSize: "10px",
+            fontWeight: "bold",
+            color: "#ff6b35",
+          },
+        },
+      });
+    }
+
+    console.log(
+      "Final newPlotLines count:",
+      newPlotLines.length,
+      newPlotLines.map((line) => ({
+        className: line.className,
+        value: line.value,
+        label: line.label?.text,
+      }))
+    );
+
+    chartBatch.plotLines = newPlotLines;
+
+    const strategy = detectStrategy(selectedOptions);
+
+    if (strategy && strategyInfoText) {
+      let strategyTypeClass = "";
+      if (strategy.outlook.toLowerCase().includes("bullish")) {
+        strategyTypeClass = "bullish-strategy";
+      } else if (strategy.outlook.toLowerCase().includes("bearish")) {
+        strategyTypeClass = "bearish-strategy";
+      } else {
+        strategyTypeClass = "neutral-strategy";
+      }
+
+      strategyInfoText.textContent = "";
+
+      const header = document.createElement("div");
+      header.className = "strategy-header";
+      const h3 = document.createElement("h3");
+      h3.textContent = strategy.type;
+      header.appendChild(h3);
+
+      const description = document.createElement("p");
+      description.textContent = strategy.description;
+
+      const outlookDiv = document.createElement("div");
+      outlookDiv.className = "strategy-attribute";
+      outlookDiv.innerHTML = `<strong>Outlook:</strong> <span class="strategy-badge ${strategyTypeClass}">${
+        strategy.outlook.split(",")[0]
+      }</span>`;
+      if (strategy.outlook.includes(",")) {
+        const extraSpan = document.createElement("span");
+        extraSpan.textContent = strategy.outlook.split(",")[1];
+        outlookDiv.appendChild(extraSpan);
+      }
+
+      const profitDiv = document.createElement("div");
+      profitDiv.className = "strategy-attribute";
+      profitDiv.innerHTML = `<strong>Max Profit:</strong> <span class="max-profit">${strategy.maxProfit}</span>`;
+
+      const lossDiv = document.createElement("div");
+      lossDiv.className = "strategy-attribute";
+      lossDiv.innerHTML = `<strong>Max Loss:</strong> <span class="max-loss">${strategy.maxLoss}</span>`;
+
+      strategyInfoText.append(
+        header,
+        description,
+        outlookDiv,
+        profitDiv,
+        lossDiv
+      );
+    } else if (strategyInfoText) {
+      strategyInfoText.textContent = "";
+      const p1 = document.createElement("p");
+      p1.textContent = `Custom strategy with ${selectedOptions.calls.length} calls and ${selectedOptions.puts.length} puts.`;
+      const p2 = document.createElement("p");
+      p2.textContent = "No recognized pattern detected.";
+      strategyInfoText.append(p1, p2);
+    }
+
+    addSelectedOptionTable();
+  } else {
+    if (strategyInfoText) {
+      strategyInfoText.textContent = "Select options to view strategy analysis";
+    }
+
+    if (component.chart.series.find((s) => s.name === "Combined Strategy")) {
+      chartBatch.series.push({ action: "remove", data: "Combined Strategy" });
+    }
+
+    addSelectedOptionTable();
+  }
+}
+
+const board = Dashboards.board("container", {
+  dataPool: {
+    connectors: [
+      {
+        id: "optionsData",
+        type: "JSON",
+        options: {
+          firstRowAsNames: false,
+          orientation: "rows",
+          columnNames: [
+            "strike",
+            "calls_bid",
+            "calls_ask",
+            "calls_last",
+            "calls_change",
+            "calls_volume",
+            "calls_openint",
+            "calls_iv",
+            "calls_delta",
+            "puts_bid",
+            "puts_ask",
+            "puts_last",
+            "puts_change",
+            "puts_volume",
+            "puts_openint",
+            "puts_iv",
+            "puts_delta",
+          ],
+          data: optionsChain[activeExpiration].calls.map((call, index) => {
+            const put = optionsChain[activeExpiration].puts[index] || {};
+            return [
+              call.strike,
+              call.bid,
+              call.ask,
+              call.last,
+              call.change,
+              call.volume,
+              call.openInt,
+              call.iv,
+              call.delta,
+              put.bid,
+              put.ask,
+              put.last,
+              put.priceChange,
+              put.volume,
+              put.openInt,
+              put.iv,
+              put.delta,
+            ];
+          }),
+        },
+      },
+    ],
+  },
+
+  gui: {
+    layouts: [
+      {
+        rows: [
+          {
+            id: "row-1",
+            cells: [
+              {
+                id: "expirationSelector",
+              },
+            ],
+          },
+          {
+            id: "row-2",
+            cells: [
+              {
+                id: "chart",
+              },
+              {
+                id: "strategyInfo",
+              },
+            ],
+          },
+          {
+            id: "row-3",
+            cells: [
+              {
+                id: "selectedOptions",
+              },
+              {
+                id: "grid",
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  components: [
+    {
+      cell: "expirationSelector",
+      type: "HTML",
+      title: "Select Expiration Date",
+      elements: [
+        {
+          tagName: "div",
+          children: [
+            {
+              tagName: "div",
+              attributes: {
+                id: "expiration-tabs",
+                class: "highcharts-dashboards-component-content",
+              },
+              children: Object.keys(optionsChain).map((expDate, index) => ({
+                tagName: "button",
+                textContent: formatExpirationDate(expDate),
+                attributes: {
+                  id: `expiration-tab-${expDate}`,
+                  class: `expiration-tab ${index === 0 ? "active" : ""}`,
+                },
+              })),
+            },
+          ],
+        },
+      ],
+      events: {
+        mount: function () {
+          console.log("Component mount event fired");
+          setTimeout(() => {
+            console.log("Attaching expiration tab event listeners");
+            const expirationTabs = document.querySelectorAll(".expiration-tab");
+
+            if (expirationTabs.length > 0) {
+              console.log(`Found ${expirationTabs.length} expiration tabs`);
+
+              expirationTabs.forEach((tab) => {
+                const newTab = tab.cloneNode(true);
+                if (tab.parentNode) {
+                  tab.parentNode.replaceChild(newTab, tab);
+                }
+
+                newTab.addEventListener("click", function () {
+                  console.log(`Tab clicked: ${this.id}`);
+                  const selectedExpiration = this.id.replace(
+                    "expiration-tab-",
+                    ""
+                  );
+
+                  document.querySelectorAll(".expiration-tab").forEach((t) => {
+                    t.classList.toggle(
+                      "active",
+                      t.id === `expiration-tab-${selectedExpiration}`
+                    );
+                  });
+
+                  activeExpiration = selectedExpiration;
+                  updateOptionsGrid(selectedExpiration);
+                });
+              });
+
+              console.log("Tab event listeners successfully attached");
+            } else {
+              console.error("No expiration tabs found in the DOM");
+            }
+          }, 100);
+        },
+      },
+    },
+    {
+      cell: "chart",
+      type: "Highcharts",
+      title: "Options Payoff Analysis",
+      chartOptions: {
+        chart: {
+          animation: false,
+          zooming: {
+            mouseWheel: false,
+          },
+        },
+        title: { text: "Options Payoff Analysis" },
+        legend: { enabled: true },
+        credits: { enabled: false },
+        xAxis: {
+          categories: optionsChain[activeExpiration].calls.map((d) => d.strike),
+          title: { text: "Stock Price at Expiration" },
+          crosshair: true,
+          plotLines: [
+            {
+              value: 0,
+              className: "highcharts-break-even-line",
+              width: 1,
+              label: {
+                text: "Break-even",
+                align: "right",
+              },
+            },
+          ],
+        },
+        yAxis: {
+          title: { text: "Profit/Loss ($)" },
+        },
+        tooltip: {
+          shared: true,
+          formatter: function () {
+            let s = `<b>Stock Price: $${this.x}</b>`;
+
+            this.points.forEach((point) => {
+              s += `<br/>${point.series.name}: $${Highcharts.numberFormat(
+                point.y,
+                2
+              )}`;
+            });
+
+            return s;
+          },
+        },
+        series: [],
+      },
+      events: {
+        mount: function () {
+          const chartContainer = document.getElementById("chart");
+
+          const controlsContainer = document.createElement("div");
+          controlsContainer.id = "chart-controls";
+
+          const visibilityToggle = document.createElement("div");
+          visibilityToggle.className = "chart-control-toggle";
+          const label = document.createElement("label");
+          const checkbox = document.createElement("input");
+          checkbox.type = "checkbox";
+          checkbox.id = "showCombinedOnly";
+          const span = document.createElement("span");
+          span.textContent = "Show combined only";
+          label.appendChild(checkbox);
+          label.appendChild(span);
+          visibilityToggle.appendChild(label);
+
+          const resetButton = document.createElement("button");
+          resetButton.textContent = "Reset Chart";
+          resetButton.className = "chart-control-btn";
+
+          resetButton.addEventListener("click", () => {
+            updateOptionsGrid(activeExpiration);
+          });
+
+          controlsContainer.appendChild(visibilityToggle);
+          controlsContainer.appendChild(resetButton);
+          chartContainer.appendChild(controlsContainer);
+
+          $("#showCombinedOnly")?.addEventListener("change", function () {
+            const component = board.getComponentByCellId("chart");
+            if (component?.chart) {
+              component.chart.series.forEach((series) => {
+                if (series.name !== "Combined Strategy") {
+                  series.setVisible(!this.checked, false);
+                }
+              });
+              component.chart.redraw();
+            }
+          });
+        },
+      },
+    },
+    {
+      cell: "strategyInfo",
+      type: "HTML",
+      title: "Strategy Analysis",
+      elements: [
+        {
+          tagName: "div",
+          attributes: {
+            id: "strategyInfoContainer",
+            class: "highcharts-dashboards-component-content",
+          },
+          children: [
+            {
+              tagName: "p",
+              attributes: {
+                id: "strategyInfoText",
+              },
+              textContent: "Select options to view strategy analysis",
+            },
+          ],
+        },
+      ],
+    },
+    {
+      cell: "selectedOptions",
+      type: "HTML",
+      title: "Selected Options",
+      elements: [
+        {
+          tagName: "div",
+          attributes: {
+            id: "selected-options-container",
+            class: "highcharts-dashboards-component-content",
+          },
+          children: [
+            {
+              tagName: "p",
+              textContent: "No options selected",
+            },
+          ],
+        },
+      ],
+    },
+    {
+      cell: "grid",
+      connector: { id: "optionsData" },
+      type: "DataGrid",
+      title: "Options Chain",
+      dataGridOptions: {
+        editable: false,
+        contextMenu: {
+          enabled: false,
+        },
+        columnHeaders: {
+          enabled: true,
+        },
+        cellHeight: 35,
+        header: [
+          { columnId: "calls_bid", format: "Bid" },
+          { columnId: "calls_ask", format: "Ask" },
+          { columnId: "calls_last", format: "Last" },
+          { columnId: "calls_change", format: "Change" },
+          { columnId: "calls_volume", format: "Volume" },
+          { columnId: "calls_openint", format: "Open Int" },
+          { columnId: "calls_iv", format: "IV" },
+          { columnId: "calls_delta", format: "Delta" },
+          { columnId: "strike", format: "Strike" },
+          { columnId: "puts_bid", format: "Bid" },
+          { columnId: "puts_ask", format: "Ask" },
+          { columnId: "puts_last", format: "Last" },
+          { columnId: "puts_change", format: "Change" },
+          { columnId: "puts_volume", format: "Volume" },
+          { columnId: "puts_openint", format: "Open Int" },
+          { columnId: "puts_iv", format: "IV" },
+          { columnId: "puts_delta", format: "Delta" },
+        ],
+        editable: false,
+        columnDefaults: {
+          cells: {
+            formatter: function () {
+              if (this.column.id === "strike") {
+                return `
+                  <div class="strike-cell">
+                    <div class="call-buttons">
+                      <button class="option-btn call-long" data-side="calls" data-position="long">Long Call</button>
+                      <button class="option-btn call-short" data-side="calls" data-position="short">Short Call</button>
+                    </div>
+                    <div class="strike-value">${this.value}</div>
+                    <div class="put-buttons">
+                      <button class="option-btn put-long" data-side="puts" data-position="long">Long Put</button>
+                      <button class="option-btn put-short" data-side="puts" data-position="short">Short Put</button>
+                    </div>
+                  </div>
+                `;
+              }
+              return Highcharts.numberFormat(this.value, 2);
+            },
+          },
+        },
+        events: {
+          cell: {
+            afterSetValue: function () {
+              if (this.column.id !== "strike") return;
+
+              const strikeValue = parseFloat(this.value);
+              const cellElement = this.htmlElement;
+
+              const longCallBtn = cellElement.querySelector(".call-long");
+              const shortCallBtn = cellElement.querySelector(".call-short");
+              const longPutBtn = cellElement.querySelector(".put-long");
+              const shortPutBtn = cellElement.querySelector(".put-short");
+
+              const existingCall = selectedOptions.calls.find(
+                (call) =>
+                  call.strike === strikeValue &&
+                  call.expiration === activeExpiration
+              );
+              if (existingCall) {
+                longCallBtn?.classList.toggle("selected", existingCall.isLong);
+                shortCallBtn?.classList.toggle(
+                  "selected",
+                  !existingCall.isLong
+                );
+              }
+
+              const existingPut = selectedOptions.puts.find(
+                (put) =>
+                  put.strike === strikeValue &&
+                  put.expiration === activeExpiration
+              );
+              if (existingPut) {
+                longPutBtn?.classList.toggle("selected", existingPut.isLong);
+                shortPutBtn?.classList.toggle("selected", !existingPut.isLong);
+              }
+            },
+          },
+        },
+      },
+    },
+  ],
+});
+
+function detectStrategy(selectedOptions) {
+  const optionsByExpiry = {};
+
+  selectedOptions.calls.forEach((call) => {
+    if (!optionsByExpiry[call.expiration]) {
+      optionsByExpiry[call.expiration] = { calls: [], puts: [] };
+    }
+    optionsByExpiry[call.expiration].calls.push(call);
+  });
+
+  selectedOptions.puts.forEach((put) => {
+    if (!optionsByExpiry[put.expiration]) {
+      optionsByExpiry[put.expiration] = { calls: [], puts: [] };
+    }
+    optionsByExpiry[put.expiration].puts.push(put);
+  });
+
+  const expiryDates = Object.keys(optionsByExpiry);
+
+  if (
+    expiryDates.length > 1 &&
+    selectedOptions.calls.length === 2 &&
+    selectedOptions.puts.length === 0
+  ) {
+    const sortedDates = expiryDates.sort();
+    const nearCall = selectedOptions.calls.find(
+      (call) => call.expiration === sortedDates[0]
+    );
+    const farCall = selectedOptions.calls.find(
+      (call) => call.expiration === sortedDates[1]
+    );
+
+    if (
+      nearCall &&
+      farCall &&
+      !nearCall.isLong &&
+      farCall.isLong &&
+      nearCall.strike === farCall.strike
+    ) {
+      return {
+        type: "Calendar Call Spread",
+        description: `Short call expiring ${formatExpirationDate(
+          nearCall.expiration
+        )}, 
+                     long call expiring ${formatExpirationDate(
+                       farCall.expiration
+                     )}, 
+                     both at strike $${nearCall.strike}`,
+        outlook:
+          "Neutral to slightly bullish, expecting time decay and low volatility",
+        maxProfit: "Limited; typically at near strike price near expiration",
+        maxLoss: `Limited to net debit paid: $${(
+          (farCall.premium - nearCall.premium) *
+          100
+        ).toFixed(2)}`,
+      };
+    }
+  }
+
+  // Calendar Put Spread
+  if (
+    expiryDates.length > 1 &&
+    selectedOptions.puts.length === 2 &&
+    selectedOptions.calls.length === 0
+  ) {
+    const sortedDates = expiryDates.sort();
+    const nearPut = selectedOptions.puts.find(
+      (put) => put.expiration === sortedDates[0]
+    );
+    const farPut = selectedOptions.puts.find(
+      (put) => put.expiration === sortedDates[1]
+    );
+
+    if (
+      nearPut &&
+      farPut &&
+      !nearPut.isLong &&
+      farPut.isLong &&
+      nearPut.strike === farPut.strike
+    ) {
+      return {
+        type: "Calendar Put Spread",
+        description: `Short put expiring ${formatExpirationDate(
+          nearPut.expiration
+        )}, 
+                     long put expiring ${formatExpirationDate(
+                       farPut.expiration
+                     )}, 
+                     both at strike $${nearPut.strike}`,
+        outlook:
+          "Neutral to slightly bearish, expecting time decay and low volatility",
+        maxProfit: "Limited; typically at near strike price near expiration",
+        maxLoss: `Limited to net debit paid: $${(
+          (farPut.premium - nearPut.premium) *
+          100
+        ).toFixed(2)}`,
+      };
+    }
+  }
+
+  // Diagonal Call Spread
+  if (
+    expiryDates.length > 1 &&
+    selectedOptions.calls.length === 2 &&
+    selectedOptions.puts.length === 0
+  ) {
+    const sortedDates = expiryDates.sort();
+    const nearCall = selectedOptions.calls.find(
+      (call) => call.expiration === sortedDates[0]
+    );
+    const farCall = selectedOptions.calls.find(
+      (call) => call.expiration === sortedDates[1]
+    );
+
+    if (
+      nearCall &&
+      farCall &&
+      !nearCall.isLong &&
+      farCall.isLong &&
+      nearCall.strike !== farCall.strike
+    ) {
+      return {
+        type: "Diagonal Call Spread",
+        description: `Short call at strike $${
+          nearCall.strike
+        } expiring ${formatExpirationDate(nearCall.expiration)}, 
+                     long call at strike $${
+                       farCall.strike
+                     } expiring ${formatExpirationDate(farCall.expiration)}`,
+        outlook: "Moderately bullish with time decay advantage",
+        maxProfit: "Variable depending on stock movement and time decay",
+        maxLoss: `Limited to net debit paid: $${(
+          (farCall.premium - nearCall.premium) *
+          100
+        ).toFixed(2)}`,
+      };
+    }
+  }
+
+  // Double Calendar Spread
+  if (
+    expiryDates.length === 2 &&
+    selectedOptions.calls.length === 2 &&
+    selectedOptions.puts.length === 2
+  ) {
+    const sortedDates = expiryDates.sort();
+    const nearCall = selectedOptions.calls.find(
+      (call) => call.expiration === sortedDates[0]
+    );
+    const farCall = selectedOptions.calls.find(
+      (call) => call.expiration === sortedDates[1]
+    );
+    const nearPut = selectedOptions.puts.find(
+      (put) => put.expiration === sortedDates[0]
+    );
+    const farPut = selectedOptions.puts.find(
+      (put) => put.expiration === sortedDates[1]
+    );
+
+    if (
+      nearCall &&
+      farCall &&
+      nearPut &&
+      farPut &&
+      !nearCall.isLong &&
+      farCall.isLong &&
+      !nearPut.isLong &&
+      farPut.isLong &&
+      nearCall.strike === nearPut.strike &&
+      farCall.strike === farPut.strike
+    ) {
+      const netDebit =
+        farCall.premium - nearCall.premium + (farPut.premium - nearPut.premium);
+
+      return {
+        type: "Double Calendar Spread",
+        description: `Short options expiring ${formatExpirationDate(
+          sortedDates[0]
+        )}, 
+                     long options expiring ${formatExpirationDate(
+                       sortedDates[1]
+                     )},
+                     at strikes $${nearCall.strike} and $${farCall.strike}`,
+        outlook:
+          "Neutral, expecting low volatility now and higher volatility later",
+        maxProfit: "Variable based on volatility changes and time decay",
+        maxLoss: `Limited to net debit paid: $${(netDebit * 100).toFixed(2)}`,
+      };
+    }
+  }
+
+  // Check for single-expiry strategies within each expiration date
+  for (const expiry in optionsByExpiry) {
+    const options = optionsByExpiry[expiry];
+    const result = detectSingleExpiryStrategy(options, expiry);
+    if (result) return result;
+  }
+
+  return null;
+}
+
+function detectSingleExpiryStrategy(options, expirationDate) {
+  const { calls, puts } = options;
+
+  // Long/Short Call
+  if (calls.length === 1 && puts.length === 0) {
+    const call = calls[0];
+    if (call.isLong) {
+      return {
+        type: "Long Call",
+        description: `Long Call with strike price $${
+          call.strike
+        }, expiring ${formatExpirationDate(expirationDate)}`,
+        outlook:
+          "Bullish. Profit when stock price rises significantly above strike price.",
+        maxProfit: "Unlimited (as stock price increases)",
+        maxLoss: `Limited to premium paid: $${(call.premium * 100).toFixed(2)}`,
+      };
+    } else {
+      return {
+        type: "Short Call",
+        description: `Short Call with strike price $${
+          call.strike
+        }, expiring ${formatExpirationDate(expirationDate)}`,
+        outlook:
+          "Bearish to neutral. Profit when stock stays below strike price.",
+        maxProfit: `Limited to premium received: $${(
+          call.premium * 100
+        ).toFixed(2)}`,
+        maxLoss: "Unlimited (as stock price increases)",
+      };
+    }
+  }
+
+  // Long/Short Put
+  if (puts.length === 1 && calls.length === 0) {
+    const put = puts[0];
+    if (put.isLong) {
+      return {
+        type: "Long Put",
+        description: `Long Put with strike price $${
+          put.strike
+        }, expiring ${formatExpirationDate(expirationDate)}`,
+        outlook:
+          "Bearish. Profit when stock price falls significantly below strike price.",
+        maxProfit: `Limited to strike price minus premium: $${(
+          (put.strike - put.premium) *
+          100
+        ).toFixed(2)}`,
+        maxLoss: `Limited to premium paid: $${(put.premium * 100).toFixed(2)}`,
+      };
+    } else {
+      return {
+        type: "Short Put",
+        description: `Short Put with strike price $${
+          put.strike
+        }, expiring ${formatExpirationDate(expirationDate)}`,
+        outlook:
+          "Bullish to neutral. Profit when stock stays above strike price.",
+        maxProfit: `Limited to premium received: $${(put.premium * 100).toFixed(
+          2
+        )}`,
+        maxLoss: `Limited to strike price minus premium: $${(
+          (put.strike - put.premium) *
+          100
+        ).toFixed(2)}`,
+      };
+    }
+  }
+
+  // Straddle and Strangle
+  if (calls.length === 1 && puts.length === 1) {
+    const call = calls[0];
+    const put = puts[0];
+
+    if (call.isLong && put.isLong) {
+      if (call.strike === put.strike) {
+        const totalPremium = call.premium + put.premium;
+        return {
+          type: "Long Straddle",
+          description: `Long Straddle with both options at strike price $${
+            call.strike
+          }, expiring ${formatExpirationDate(expirationDate)}`,
+          outlook: "Expecting significant price movement in either direction.",
+          maxProfit:
+            "Unlimited to the upside, limited to strike price minus premium to the downside",
+          maxLoss: `Limited to total premium paid: $${(
+            totalPremium * 100
+          ).toFixed(2)}`,
+        };
+      } else {
+        const totalPremium = call.premium + put.premium;
+        const lowerStrike = Math.min(call.strike, put.strike);
+        const higherStrike = Math.max(call.strike, put.strike);
+        return {
+          type: "Long Strangle",
+          description: `Long Strangle with call at $${
+            call.strike
+          } and put at $${put.strike}, expiring ${formatExpirationDate(
+            expirationDate
+          )}`,
+          outlook: "Expecting significant price movement in either direction.",
+          maxProfit:
+            "Unlimited to the upside, limited to lower strike minus premium to the downside",
+          maxLoss: `Limited to total premium paid: $${(
+            totalPremium * 100
+          ).toFixed(2)}`,
+        };
+      }
+    }
+  }
+
+  // Bull Spread using Calls
+  if (calls.length === 2 && puts.length === 0) {
+    const sortedCalls = [...calls].sort((a, b) => a.strike - b.strike);
+    if (sortedCalls[0].isLong && !sortedCalls[1].isLong) {
+      const netPremium = sortedCalls[0].premium - sortedCalls[1].premium;
+      const maxProfit =
+        (sortedCalls[1].strike - sortedCalls[0].strike - netPremium) * 100;
+      return {
+        type: "Bull Call Spread",
+        description: `Bull Call Spread with long call at $${
+          sortedCalls[0].strike
+        } and short call at $${
+          sortedCalls[1].strike
+        }, expiring ${formatExpirationDate(expirationDate)}`,
+        outlook:
+          "Moderately bullish. Profit when stock rises above the lower strike.",
+        maxProfit: `Limited to the difference in strikes minus net premium: $${maxProfit.toFixed(
+          2
+        )}`,
+        maxLoss: `Limited to net premium paid: $${(netPremium * 100).toFixed(
+          2
+        )}`,
+      };
+    }
+  }
+
+  return null;
+}
+
+function addSelectedOptionTable() {
+  const container = document.getElementById("selected-options-container");
+  if (!container) {
+    console.error("Container not found: selected-options-container");
+    return;
+  }
+
+  container.textContent = "";
+
+  if (selectedOptions.calls.length === 0 && selectedOptions.puts.length === 0) {
+    const p = document.createElement("p");
+    p.textContent = "No options selected";
+    container.appendChild(p);
+    return;
+  }
+
+  const table = document.createElement("table");
+
+  const thead = document.createElement("thead");
+  const headerRow = document.createElement("tr");
+
+  ["Type", "Position", "Strike", "Premium", "Expiration"].forEach((text) => {
+    const th = document.createElement("th");
+    th.textContent = text;
+    headerRow.appendChild(th);
+  });
+
+  thead.appendChild(headerRow);
+  table.appendChild(thead);
+
+  const tbody = document.createElement("tbody");
+
+  //Calls
+  selectedOptions.calls.forEach((call) => {
+    const tr = document.createElement("tr");
+
+    const tdType = document.createElement("td");
+    tdType.textContent = "Call";
+
+    const tdPosition = document.createElement("td");
+    tdPosition.textContent = call.isLong ? "Long" : "Short";
+
+    const tdStrike = document.createElement("td");
+    tdStrike.textContent = `$${call.strike}`;
+
+    const tdPremium = document.createElement("td");
+    tdPremium.textContent = `$${call.premium.toFixed(2)}`;
+
+    const tdExpiration = document.createElement("td");
+    tdExpiration.textContent = formatExpirationDate(call.expiration);
+
+    tr.append(tdType, tdPosition, tdStrike, tdPremium, tdExpiration);
+    tbody.appendChild(tr);
+  });
+
+  //Puts
+  selectedOptions.puts.forEach((put) => {
+    const tr = document.createElement("tr");
+
+    const tdType = document.createElement("td");
+    tdType.textContent = "Put";
+
+    const tdPosition = document.createElement("td");
+    tdPosition.textContent = put.isLong ? "Long" : "Short";
+
+    const tdStrike = document.createElement("td");
+    tdStrike.textContent = `$${put.strike}`;
+
+    const tdPremium = document.createElement("td");
+    tdPremium.textContent = `$${put.premium.toFixed(2)}`;
+
+    const tdExpiration = document.createElement("td");
+    tdExpiration.textContent = formatExpirationDate(put.expiration);
+
+    tr.append(tdType, tdPosition, tdStrike, tdPremium, tdExpiration);
+    tbody.appendChild(tr);
+  });
+
+  table.appendChild(tbody);
+  container.appendChild(table);
+}
+
+function getExpirationLineStyle(expiration) {
+  const expirations = Object.keys(optionsChain);
+  const index = expirations.indexOf(expiration);
+  return LINE_STYLES[index % LINE_STYLES.length];
+}
+
+function showMaxOptionsWarning() {
+  let warningEl = $("#chart-max-options-warning");
+  if (!warningEl) {
+    warningEl = document.createElement("div");
+    warningEl.id = "chart-max-options-warning";
+    warningEl.className = "chart-warning";
+    $("#chart")?.insertBefore(warningEl, $("#chart").firstChild);
+  }
+
+  warningEl.textContent = `Maximum ${MAX_OPTIONS_IN_CHART} options can be displayed in chart. Remove an option to add another.`;
+  setTimeout(() => {
+    warningEl.style.opacity = "0";
+    setTimeout(() => warningEl.remove(), 1000);
+  }, 4000);
+}
